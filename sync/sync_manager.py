@@ -60,6 +60,7 @@ class SyncManager:
                         "password": atlas_org.get("password"),
                         "staff_password": atlas_org.get("staff_password"),
                         "is_locked": atlas_org.get("is_locked"),
+                        "valid_upto": atlas_org.get("valid_upto"),
                         "updated_at": atlas_time 
                     }
                 }
