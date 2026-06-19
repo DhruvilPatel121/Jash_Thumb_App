@@ -71,4 +71,5 @@ class AppCorePage(QWidget):
         self.stop_active_scanners()
         from utils.session import Session
         Session.logout()
+        self.main_window.login_page.reset_login_state()
         self.main_window.show_login_page()

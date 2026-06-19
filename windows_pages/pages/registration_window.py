@@ -12,6 +12,7 @@ from utils.session import Session
 from database.patient_repository import PatientRepository
 from database.mongodb_connection import DatabaseConnectionError
 from PyQt6.QtCore import pyqtSignal
+from utils.resource_path import resource_path
 
 class RegistrationPage(QWidget):
 
@@ -836,7 +837,7 @@ class RegistrationPage(QWidget):
 
 
     def update_scan_status(self, source, message, color="#3B82F6"):
-        # જો કોઈ જૂનું GIF એનિમેશન ચાલુ હોય, તો તેને બંધ કરો (Memory બચાવવા)
+        source = resource_path(source)
         if hasattr(self, 'movie') and self.movie is not None:
             self.movie.stop()
             self.movie = None

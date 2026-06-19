@@ -2,6 +2,7 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButto
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPixmap
 from utils.toast_notification import MessageManager
+from utils.resource_path import resource_path
 
 class ForgotPasswordPage(QWidget):
 
@@ -36,13 +37,10 @@ class ForgotPasswordPage(QWidget):
         self.lock_icon = QLabel()
         self.lock_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.lock_icon.setStyleSheet("background: transparent;")
-        pixmap = QPixmap("assets/password.png")
-        pixmap = pixmap.scaled(
-            150,
-            150,
+        pixmap = QPixmap(resource_path("assets/password.png"))
+        pixmap = pixmap.scaled(150,150,
             Qt.AspectRatioMode.KeepAspectRatio,
-            Qt.TransformationMode.SmoothTransformation
-        )
+            Qt.TransformationMode.SmoothTransformation)
         self.lock_icon.setPixmap(pixmap)
         self.card_layout.addWidget(self.lock_icon, alignment=Qt.AlignmentFlag.AlignHCenter)
 

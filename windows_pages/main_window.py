@@ -28,7 +28,7 @@ class MainWindow(QMainWindow):
         self.main_stack.addWidget(self.forgot_page)
             
         self.main_stack.setCurrentIndex(0)
-        
+
     def show_login_page(self):
         self.main_stack.setCurrentIndex(0)
         

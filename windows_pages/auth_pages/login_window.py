@@ -5,6 +5,8 @@ from utils.toast_notification import MessageManager
 from utils.session import Session
 from database.organization_repository import OrganizationRepository
 import hashlib
+from utils.resource_path import resource_path
+from PyQt6.QtWidgets import QApplication
 
 class LoginPage(QWidget):
     def __init__(self, db, main_window):
@@ -39,7 +41,7 @@ class LoginPage(QWidget):
         self.user_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.user_icon.setStyleSheet("background: transparent;")
 
-        pixmap = QPixmap("assets/user_2.png")
+        pixmap = QPixmap(resource_path("assets/user_2.png"))
         pixmap = pixmap.scaled(120, 120, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
         self.user_icon.setPixmap(pixmap)
         self.card_layout.addWidget(self.user_icon, alignment=Qt.AlignmentFlag.AlignHCenter)
@@ -94,8 +96,8 @@ class LoginPage(QWidget):
         self.password_input.setFixedHeight(50)
         self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
         self.password_input.returnPressed.connect(self.validate_login)
-        
-        self.eye_action = QAction(QIcon("assets/eye.png"), "", self)
+
+        self.eye_action = QAction(QIcon(resource_path("assets/eye.png")),"",self)
         self.eye_action.triggered.connect(self.toggle_password_visibility)
         self.password_input.addAction(self.eye_action, QLineEdit.ActionPosition.TrailingPosition)
         self.card_layout.addWidget(self.password_input)
@@ -162,11 +164,13 @@ class LoginPage(QWidget):
     def toggle_password_visibility(self):
         if self.password_input.echoMode() == QLineEdit.EchoMode.Password:
             self.password_input.setEchoMode(QLineEdit.EchoMode.Normal)
-            self.eye_action.setIcon(QIcon("assets/eye_off.png"))
+            self.eye_action.setIcon(QIcon(resource_path("assets/eye_off.png")))
         else:
             self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
-            self.eye_action.setIcon(QIcon("assets/eye.png"))
-
+            self.eye_action.setIcon(QIcon(resource_path("assets/eye.png")))
+    def reset_login_state(self):
+        self.login_button.setText("LOGIN")
+        self.login_button.setEnabled(True)
     def open_forgot_password(self):
         self.main_window.show_forgot_page()
 
@@ -185,12 +189,15 @@ class LoginPage(QWidget):
         if not raw_password:
             MessageManager.show_message(self.message_label, "Please enter password.", "warning")
             return
-        
+        self.login_button.setText("LOGGING IN...")
+        self.login_button.setEnabled(False)
+        QApplication.processEvents()
         hashed_password = hashlib.sha256(raw_password.encode('utf-8')).hexdigest()
         organization = self.organization_repository.verify_login(username, hashed_password)
-
+        
         if organization:
             Session.login(organization["_id"], organization["email"])
             self.main_window.show_app_core()
         else:
+            self.reset_login_state()
             MessageManager.show_message(self.message_label, "Invalid Email or password.", "error")
