@@ -2,8 +2,8 @@ import os
 import ctypes
 import numpy as np
 from ctypes import c_void_p, byref
-
-
+from utils.resource_path import resource_path
+import logging
 class ScannerManager:
 
     def __init__(self):
@@ -17,13 +17,16 @@ class ScannerManager:
         if self.sdk_loaded:
             return True
         try:
-            sdk_path = os.path.join(os.getcwd(), "sdk")
+            sdk_path = resource_path("sdk")
+            logging.info(f"SDK PATH: {sdk_path}")
             os.add_dll_directory(sdk_path)
             self.sdk = ctypes.WinDLL(os.path.join(sdk_path, "sgfplib.dll"))
             self.algorithm = ctypes.WinDLL(os.path.join(sdk_path, "sgfpamx.dll"))
+            logging.info("SDK Loaded Successfully")
             self.sdk_loaded = True
             return True
         except Exception as error:
+            logging.error(f"SDK Load Failed: {error}",exc_info=True)
             return False
 
     def create(self):
@@ -51,8 +54,10 @@ class ScannerManager:
             if result == 0:
                 self.device_connected = True
                 return True
+            logging.error(f"Scanner Open Failed. Result={result}")
             return False
         except Exception as error:
+            logging.error(f"Open Device Exception: {error}",exc_info=True)
             return False
 
     
