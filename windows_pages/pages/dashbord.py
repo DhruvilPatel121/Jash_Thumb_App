@@ -658,6 +658,10 @@ class DashboardPage(QWidget):
             is_completed = (state['consult'] is not None and state['medicine'] is not None)
             row_bg_color = QColor("#F8FAFC") if is_completed else QColor("#FFFFFF")
 
+            paid_days = int(record.get("paid_days", 0) or 0)
+            used_days = int(record.get("used_days", 0) or 0)
+            is_payment_due = used_days > paid_days
+
             problem = record.get("problem", "").strip()
             if not problem:
                 problem = "--"
@@ -694,6 +698,8 @@ class DashboardPage(QWidget):
                 item.setBackground(row_bg_color)
                 if is_completed:
                     item.setForeground(QColor("#94A3B8")) 
+                elif is_payment_due:
+                    item.setForeground(QColor("#DC2626"))
                 target_table.setItem(row_idx, col_index, item)
             
             queue_no = record.get('queue_no', row_idx + 1)
@@ -702,10 +708,37 @@ class DashboardPage(QWidget):
             badge.setFixedSize(32, 32)
 
             if is_completed:
-                badge.setStyleSheet("QLabel{ background-color:#E2E8F0; color:#64748B; border-radius:16px; font-size:14px; font-weight:700; }")
-            else:
-                badge.setStyleSheet("QLabel{ background-color:#EEF2FF; color:#4F46E5; border-radius:16px; font-size:14px; font-weight:700; }")
+                badge.setStyleSheet("""
+                QLabel{
+                    background-color:#E2E8F0;
+                    color:#64748B;
+                    border-radius:16px;
+                    font-size:14px;
+                    font-weight:700;
+                }
+                """)
 
+            elif is_payment_due:
+                badge.setStyleSheet("""
+                QLabel{
+                    background-color:#FEE2E2;
+                    color:#DC2626;
+                    border-radius:16px;
+                    font-size:14px;
+                    font-weight:700;
+                }
+                """)
+
+            else:
+                badge.setStyleSheet("""
+                QLabel{
+                    background-color:#EEF2FF;
+                    color:#4F46E5;
+                    border-radius:16px;
+                    font-size:14px;
+                    font-weight:700;
+                }
+                """)
             container = QWidget()
             container.setStyleSheet("QWidget{background: transparent;}")
             layout = QHBoxLayout(container)
