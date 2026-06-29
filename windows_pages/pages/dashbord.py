@@ -68,13 +68,11 @@ class ActionPopup(QWidget):
         layout.addWidget(self.wrong_btn)
         layout.addWidget(self.reset_btn)
 
-        # મેઈન વિજેટ લેઆઉટ (શેડો માટે માર્જિન આપવા)
         main_layout = QHBoxLayout(self)
         main_layout.setContentsMargins(10, 10, 10, 10) 
         main_layout.addWidget(self.frame)
 
     def select_option(self, state):
-        # યુઝર જે ઓપ્શન સિલેક્ટ કરે તે મેઈન બટન પર મોકલીને પોપઅપ બંધ કરો
         self.parent_widget.set_state(state)
         self.close()
 
@@ -182,7 +180,13 @@ class DashboardPage(QWidget):
         self.search_input = QLineEdit()
         self.search_input.textChanged.connect(self.search_attendance_logs)
         self.search_input.setPlaceholderText("Search patient...")
-        self.search_input.setFixedSize(350, 40) 
+        self.search_input.setFixedHeight(40)
+        self.search_input.setMinimumWidth(250)
+        self.search_input.setMaximumWidth(500)
+        self.search_input.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Fixed
+        )
         self.search_input.setStyleSheet("""
         QLineEdit{
             background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px;
@@ -194,6 +198,7 @@ class DashboardPage(QWidget):
         # 3. Filter Date Button
         self.filter_date_btn = QPushButton("Filter Date")
         self.filter_date_btn.setFixedHeight(40) 
+        self.filter_date_btn.setMinimumWidth(120)
         self.filter_date_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.filter_date_btn.clicked.connect(self.show_calendar_popup) 
         self.filter_date_btn.setStyleSheet("""
@@ -204,6 +209,7 @@ class DashboardPage(QWidget):
         # 4. Reset Filter Button
         self.reset_btn = QPushButton("Today's List")
         self.reset_btn.setFixedHeight(40)
+        self.reset_btn.setMinimumWidth(120)
         self.reset_btn.setCursor(Qt.CursorShape.PointingHandCursor) 
         self.reset_btn.clicked.connect(self.reset_filters) 
         self.reset_btn.setStyleSheet("""
@@ -213,7 +219,8 @@ class DashboardPage(QWidget):
 
         # 5. Scanner Button
         self.scanner_btn = QPushButton("Start Scanner")
-        self.scanner_btn.setFixedSize(130, 40) 
+        self.scanner_btn.setFixedHeight(40)
+        self.scanner_btn.setMinimumWidth(130)
         self.scanner_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.scanner_btn.clicked.connect(self.start_scanner) 
         self.scanner_btn.setStyleSheet("""
@@ -232,17 +239,28 @@ class DashboardPage(QWidget):
         self.user_label.setStyleSheet("color: #64748B; font-size: 15px; font-weight: 600; border:none;")
         self.user_label.setCursor(Qt.CursorShape.PointingHandCursor)
         self.user_label.mousePressEvent = self.show_role_popup
-
-        self.header_layout.addSpacing(80) 
+        self.header_layout.addSpacing(80)
         self.header_layout.addWidget(self.page_title)
-        self.header_layout.addSpacing(20) 
-        self.header_layout.addWidget(self.search_input) 
-        self.header_layout.addSpacing(15)
+
+        self.header_layout.addSpacing(25)
+
+        # Search Box - Expands automatically
+        self.header_layout.addWidget(self.search_input, 1)
+
+        # Buttons
         self.header_layout.addWidget(self.filter_date_btn)
-        self.header_layout.addSpacing(15)
         self.header_layout.addWidget(self.reset_btn)
-        self.header_layout.addSpacing(15)
         self.header_layout.addWidget(self.scanner_btn)
+
+        # Push Date/Time/User to the right
+        self.header_layout.addStretch()
+
+        # Right Side
+        self.header_layout.addWidget(self.header_date_label)
+        self.header_layout.addSpacing(15)
+        self.header_layout.addWidget(self.time_label)
+        self.header_layout.addSpacing(15)
+        self.header_layout.addWidget(self.user_label)
         
         self.header_layout.addStretch() 
         
@@ -390,12 +408,7 @@ class DashboardPage(QWidget):
         
         ortho_layout.addWidget(ortho_title)
         ortho_layout.addWidget(self.cardio_table)
-
-        # Ortho ફ્રેમ ને main layout માં ઉમેરો
         self.content_layout.addWidget(self.ortho_frame)
-
-
-        # બે ટેબલ વચ્ચે થોડી જગ્યા (Space) રાખવા માટે
         self.content_layout.addSpacing(20)
 
 
@@ -433,7 +446,6 @@ class DashboardPage(QWidget):
         neuro_layout.addWidget(neuro_title)
         neuro_layout.addWidget(self.neuro_table)
 
-        # Neuro ફ્રેમ ને main layout માં ઉમેરો
         self.content_layout.addWidget(self.neuro_frame)
 
         # Footer
@@ -732,7 +744,7 @@ class DashboardPage(QWidget):
             delete_btn = QPushButton("🗑️")
             delete_btn.setFixedSize(35, 35)
             
-            if allow_edit:
+            if allow_edit and not is_completed:
                 delete_btn.setCursor(Qt.CursorShape.PointingHandCursor)
                 delete_btn.setStyleSheet("""
                 QPushButton{
@@ -745,7 +757,6 @@ class DashboardPage(QWidget):
                 QPushButton:hover{ background-color: #FECACA; }
                 QPushButton:pressed{ border: 1px solid #EF4444; }
                 """)
-                # Connect the click event to show the popup, passing the specific attendance record
                 delete_btn.clicked.connect(lambda _, r=record: self.delete_attendance_dialog.show_dialog(r))
             else:
                 delete_btn.setCursor(Qt.CursorShape.ForbiddenCursor)

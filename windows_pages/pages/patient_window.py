@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import (QWidget,QHBoxLayout,QVBoxLayout,QPushButton,QFrame,QLabel,QTableWidget,QTableWidgetItem,QHeaderView,QAbstractItemView,QLineEdit,QDialog, QCalendarWidget)
+from PyQt6.QtWidgets import (QWidget,QHBoxLayout,QVBoxLayout,QPushButton,QSizePolicy,QFrame,QLabel,QTableWidget,QTableWidgetItem,QHeaderView,QAbstractItemView,QLineEdit,QDialog, QCalendarWidget)
 from PyQt6.QtCore import Qt, QTimer, QDateTime, QDate, pyqtSignal
 from PyQt6.QtGui import QFont
 from utils.update_patient_dialog import UpdatePatientDialog
@@ -74,7 +74,7 @@ class PatientPage(QWidget):
 
         # Content Layout
         self.content_layout = QVBoxLayout()
-        self.content_layout.setContentsMargins(10, 10, 10, 10)
+        self.content_layout.setContentsMargins(10,10,10,10)
         self.content_layout.setSpacing(10)
         self.content_area.setLayout(self.content_layout)
 
@@ -122,7 +122,7 @@ class PatientPage(QWidget):
         self.header_layout.addStretch()
 
         self.cards_layout = QHBoxLayout()
-        self.cards_layout.setSpacing(30) 
+        self.cards_layout.setSpacing(20) 
 
         cards = [
             ("Today's Visit", "0", "#FFFFFF", "#16A34A"),
@@ -139,7 +139,13 @@ class PatientPage(QWidget):
                 }}
             """)
             card.setFixedHeight(80) 
-            card.setFixedWidth(170)
+            card.setMinimumWidth(170)
+            card.setMaximumWidth(220)
+
+            card.setSizePolicy(
+                QSizePolicy.Policy.Expanding,
+                QSizePolicy.Policy.Fixed
+            )
 
             layout = QVBoxLayout()
             layout.setContentsMargins(10, 5, 10, 5) 
@@ -184,9 +190,9 @@ class PatientPage(QWidget):
         self.header_layout.addLayout(self.cards_layout)
         self.header_layout.addStretch()
         self.header_layout.addWidget(self.header_date_label, alignment=Qt.AlignmentFlag.AlignVCenter) 
-        self.header_layout.addSpacing(20)
+        self.header_layout.addSpacing(15)
         self.header_layout.addWidget(self.time_label, alignment=Qt.AlignmentFlag.AlignVCenter)
-        self.header_layout.addSpacing(20)
+        self.header_layout.addSpacing(15)
         self.header_layout.addWidget(self.user_label, alignment=Qt.AlignmentFlag.AlignVCenter)
         
         self.content_layout.addLayout(self.header_layout)
