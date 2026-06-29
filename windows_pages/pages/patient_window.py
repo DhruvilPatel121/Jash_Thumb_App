@@ -749,6 +749,18 @@ class PatientPage(QWidget):
             self.active_dialog.hide()
         self.active_dialog = None
 
+    def close_all_popups(self):
+
+        if self.calendar_popup.isVisible():
+            self.calendar_popup.hide()
+        if self.update_dialog.isVisible():
+            self.update_dialog.hide()
+        if self.delete_dialog.isVisible():
+            self.delete_dialog.hide()
+        if self.history_dialog.isVisible():
+            self.history_dialog.hide()
+        self.active_dialog = None
+
     def open_update_dialog(self, patient):
         self.close_active_dialog()              
         self.update_dialog.show_form(patient)    
