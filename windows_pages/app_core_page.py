@@ -134,6 +134,13 @@ class AppCorePage(QWidget):
             
         self.animation.start()
 
+    def close_all_page_popups(self):
+
+        for i in range(self.content_stack.count()):
+            page = self.content_stack.widget(i)
+            if hasattr(page, "close_all_popups"):
+                page.close_all_popups()
+
     def stop_active_scanners(self):
         self.dashboard_page.stop_scanner_on_page_change()
         if hasattr(self.registration_page, 'scanner') and self.registration_page.scanner.is_connected():
@@ -142,6 +149,7 @@ class AppCorePage(QWidget):
     def go_to_dashboard(self):
         if self.sidebar_open:
             self.toggle_sidebar()
+        self.close_all_page_popups()
         self.stop_active_scanners()
         self.content_stack.setCurrentIndex(0)
         self.sidebar.set_active_page("dashboard")
@@ -150,6 +158,7 @@ class AppCorePage(QWidget):
     def go_to_registration(self):
         if self.sidebar_open:
             self.toggle_sidebar()
+        self.close_all_page_popups()
         self.stop_active_scanners()
         self.content_stack.setCurrentIndex(1)
         self.sidebar.set_active_page("registration")
@@ -157,6 +166,7 @@ class AppCorePage(QWidget):
     def go_to_patients(self):
         if self.sidebar_open:
             self.toggle_sidebar()
+        self.close_all_page_popups()
         self.stop_active_scanners()
         self.content_stack.setCurrentIndex(2)
         self.sidebar.set_active_page("patient")
