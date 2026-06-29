@@ -81,7 +81,7 @@ class ScannerManager:
             if result == 0:
                 quality_score = self.get_image_quality(image_buffer)
                 
-                if quality_score < 70:
+                if quality_score < 65:
                     return None, "Try again, image is not clear."                
                 return image_buffer, "Success"
             
