@@ -102,7 +102,16 @@ class AttendanceWorker(QThread):
                 department = "Ortho"
             
             patient["department"] = department
-            
+            attendance_count = (
+                self.attendance_repository
+                .get_patient_attendance_count(
+                    self.organization_id,
+                    str(patient["_id"])
+                )
+            )
+            used_days = attendance_count + 1
+            payment_per_day = patient.get("payment_per_day", 0)
+            paid_days = patient.get("paid_days", 0)
             self.attendance_repository.mark_attendance(
                 self.organization_id,
                 str(patient["_id"]),
@@ -114,7 +123,10 @@ class AttendanceWorker(QThread):
                 current_time,
                 department,
                 patient.get("age", ""),
-                patient.get("problem", "")
+                patient.get("problem", ""),
+                payment_per_day,
+                paid_days,
+                used_days
             )
             patient["attendance_time"] = current_time
             

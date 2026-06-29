@@ -93,24 +93,32 @@ class PatientRepository:
 
     @check_connection
     def update_patient(
-        self,
-        patient_id,
-        name,
-        mobile,
-        age,
-        gender,
-        department,
-        problem,
-        fingerprint_template=None
+    self,
+    patient_id,
+    name,
+    mobile,
+    age,
+    gender,
+    department,
+    payment_per_day,
+    add_paid_days,
+    problem,
+    fingerprint_template=None
     ):
+        
+        patient = self.patients.find_one({"_id": patient_id})
+        current_paid_days = patient.get("paid_days", 0)
+        updated_paid_days = current_paid_days + add_paid_days
         try:
             update_data = {
-                "name": name,
+                 "name": name,
                 "mobile": mobile,
                 "age": age,
                 "gender": gender,
                 "department": department,
                 "problem": problem,
+                "payment_per_day": payment_per_day,
+                "paid_days": updated_paid_days,
             }
             if fingerprint_template:
                 update_data["fingerprint_template"] = fingerprint_template

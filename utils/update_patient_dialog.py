@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import (QFrame, QLabel, QLineEdit, QPushButton, QVBoxLayout,QHBoxLayout, QFormLayout, QRadioButton, QButtonGroup)
 from PyQt6.QtCore import Qt, pyqtSignal,QEvent,QRegularExpression
-from PyQt6.QtGui import QRegularExpressionValidator
+from PyQt6.QtGui import QRegularExpressionValidator, QKeySequence, QShortcut
 from utils.toast_notification import ToastNotification
 from database.patient_repository import PatientRepository
 from database.mongodb_connection import DatabaseConnectionError
@@ -22,15 +22,15 @@ class UpdatePatientDialog(QFrame):
         self.verification = Verification(self.scanner)
         self.template_bytes = None
         self.attendance_repository = AttendanceRepository()
+        self.esc_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Escape), self)
+        self.esc_shortcut.activated.connect(self.cancel_update)
 
     def setup_ui(self):
         self.setObjectName("updateCard")
         self.hide()
-        self.setFixedSize(600, 500)
+        self.setFixedSize(600, 600)
 
-        # ---------------------------------------------------------
-        # MODERN CSS ADDED HERE
-        # ---------------------------------------------------------
+
         self.setStyleSheet("""
         QFrame#updateCard {
             background-color: #ffffff;
@@ -134,7 +134,7 @@ class UpdatePatientDialog(QFrame):
         """)
 
         main_layout = QVBoxLayout()
-        main_layout.setContentsMargins(30, 30, 30, 30)
+        main_layout.setContentsMargins(40, 30, 40, 30)
         main_layout.setSpacing(20)
         self.setLayout(main_layout)
 
@@ -144,16 +144,25 @@ class UpdatePatientDialog(QFrame):
         main_layout.addWidget(title)
 
         form_layout = QFormLayout()
-        form_layout.setSpacing(15)
+        form_layout.setSpacing(18)
         main_layout.addLayout(form_layout)
 
+        age_regex = QRegularExpression(r"^[0-9]{1,3}(\.(1[0-1]?|[2-9])?)?$")
+        age_validator = QRegularExpressionValidator(age_regex)
+        number_validator = QRegularExpressionValidator(QRegularExpression("^[0-9]*$"))
         self.name_input = QLineEdit()
         self.mobile_input = QLineEdit()
         self.age_input = QLineEdit()
+        self.payment_input = QLineEdit()
+        self.add_paid_days_input = QLineEdit()
+        
+        self.age_input.setValidator(age_validator)
+        self.payment_input.setValidator(number_validator)
+        self.add_paid_days_input.setValidator(number_validator)
+        self.payment_input.setMaxLength(6)
+        self.add_paid_days_input.setMaxLength(4)
         self.mobile_input.setMaxLength(10)
-        self.age_input.setMaxLength(3)
         number_validator = QRegularExpressionValidator(QRegularExpression("^[0-9]*$"))
-        self.age_input.setValidator(number_validator)
         self.mobile_input.setValidator(number_validator)
         
         # Gender Radio Buttons
@@ -183,6 +192,8 @@ class UpdatePatientDialog(QFrame):
         form_layout.addRow("Name", self.name_input)
         form_layout.addRow("Mobile", self.mobile_input)
         form_layout.addRow("Age", self.age_input)
+        form_layout.addRow("Payment Per Day", self.payment_input)
+        form_layout.addRow("Add Paid Days", self.add_paid_days_input)
         form_layout.addRow("Gender", self.gender_layout)
         form_layout.addRow("Department", self.department_layout)
         form_layout.addRow("Problem", self.problem_input)
@@ -264,6 +275,8 @@ class UpdatePatientDialog(QFrame):
         self.name_input.setText(patient.get("name", ""))
         self.mobile_input.setText(patient.get("mobile", ""))
         self.age_input.setText(str(patient.get("age", "")))
+        self.payment_input.setText(str(patient.get("payment_per_day", 0)))
+        self.add_paid_days_input.clear()
         self.problem_input.setText(patient.get("problem", ""))
 
         department = patient.get("department", "")
@@ -298,7 +311,8 @@ class UpdatePatientDialog(QFrame):
         age = self.age_input.text().strip()
         gender = "Male" if self.male_radio.isChecked() else "Female"
         problem = self.problem_input.text().strip()
-
+        payment_per_day = int(self.payment_input.text().strip() or 0)
+        add_paid_days = int(self.add_paid_days_input.text().strip() or 0)
         department = ""
         if self.dep1_radio.isChecked():
             department = "Neuro"
@@ -331,7 +345,9 @@ class UpdatePatientDialog(QFrame):
                 age,
                 gender,
                 department,
-                problem,  
+                payment_per_day,
+                add_paid_days,
+                problem,
                 self.template_bytes
             )
 

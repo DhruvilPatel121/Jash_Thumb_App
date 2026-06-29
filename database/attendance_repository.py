@@ -2,6 +2,7 @@ from database.mongodb_connection import MongoDBConnection
 from datetime import datetime
 from bson import ObjectId 
 from utils.db_executor import DBExecutor 
+import logging
 
 class AttendanceRepository:
     def __init__(self):
@@ -9,7 +10,7 @@ class AttendanceRepository:
         self.attendance = self.db.attendance
         self.executor = DBExecutor()
 
-    def mark_attendance(self, organization_id, patient_id, serial_no, patient_name, mobile, gender, attendance_date, check_in_time, department, age, problem):
+    def mark_attendance(self,organization_id,patient_id,serial_no,patient_name,mobile,gender,attendance_date,check_in_time,department,age,problem,payment_per_day,paid_days,used_days):
         record = {
             "organization_id": organization_id,
             "patient_id": patient_id,
@@ -21,6 +22,9 @@ class AttendanceRepository:
             "department": department,
             "age": age,
             "problem": problem,
+            "payment_per_day": payment_per_day,
+            "paid_days": paid_days,
+            "used_days": used_days,
             "status": "Present",
             "E": None,
             "P": None,
@@ -103,7 +107,9 @@ class AttendanceRepository:
                     "_id": 0,
                     "patient_name": 1,
                     "attendance_date": 1,
-                    "check_in_time": 1
+                    "check_in_time": 1,
+                    "paid_days": 1,       
+                    "used_days": 1        
                 }
             ).sort("attendance_date", -1)
         )
@@ -136,3 +142,16 @@ class AttendanceRepository:
             print(f"Error deleting attendance: {error}")
             return False
     
+    def get_patient_attendance_count(self, organization_id, patient_id):
+        try:
+            return self.attendance.count_documents({
+                "organization_id": organization_id,
+                "patient_id": patient_id
+            })
+        except Exception as error:
+            logging.error(
+                f"Get Patient Attendance Count Error | "
+                f"Error: {error}",
+                exc_info=True
+            )
+            return 0

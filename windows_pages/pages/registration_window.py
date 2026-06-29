@@ -328,12 +328,12 @@ class RegistrationPage(QWidget):
         self.form_layout.addRow(self.name_label, self.name_input)
         self.form_layout.addRow(self.mobile_label, self.mobile_input)
         self.form_layout.addRow(self.age_label, self.age_input)
-        
+        self.form_layout.addRow(self.payment_label,self.payment_input)
+        self.form_layout.addRow(self.total_days_label,self.total_days_input)
         self.form_layout.addRow(self.gender_label,gender_layout)
         self.form_layout.addRow(self.department_label, self.department_layout)
         self.form_layout.addRow(self.problem_label,self.problem_input)
-        self.form_layout.addRow(self.payment_label,self.payment_input)
-        self.form_layout.addRow(self.total_days_label,self.total_days_input)
+        
         self.patient_layout.addStretch()
 
 
