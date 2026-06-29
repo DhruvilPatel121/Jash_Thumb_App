@@ -921,5 +921,16 @@ class DashboardPage(QWidget):
         else:
             self.admin_popup_menu = open_admin_menu_popup(self, self.user_label, self.role_changed.emit)
 
+    def close_all_popups(self):
+        if self.calendar_popup.isVisible():
+            self.calendar_popup.hide()
+        if self.delete_attendance_dialog.isVisible():
+            self.delete_attendance_dialog.hide()        
+        if self.active_action_widget:
+            popup = getattr(self.active_action_widget, "popup", None)
+            if popup and popup.isVisible():
+                popup.close()
+        self.active_action_widget = None
+
     def on_role_switched(self, role):
         self.role_changed.emit(role)
