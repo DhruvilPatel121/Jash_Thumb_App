@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import (QFrame, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QGraphicsDropShadowEffect)
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QColor
+from PyQt6.QtGui import QColor, QShortcut,QKeySequence
 from database.patient_repository import PatientRepository
 from utils.toast_notification import ToastNotification
 from database.mongodb_connection import DatabaseConnectionError
@@ -13,6 +13,8 @@ class DeletePatientDialog(QFrame):
         super().__init__(parent)
         self.patient_repository = PatientRepository()
         self.setup_ui()
+        self.esc_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Escape), self)
+        self.esc_shortcut.activated.connect(self.cancel_delete)
 
     def setup_ui(self):
         self.setObjectName("confirmCard")

@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import (QFrame, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QGraphicsDropShadowEffect)
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QColor
+from PyQt6.QtGui import QColor, QKeySequence,QShortcut
 from database.attendance_repository import AttendanceRepository
 from utils.toast_notification import ToastNotification
 from database.mongodb_connection import DatabaseConnectionError
@@ -13,6 +13,8 @@ class DeleteAttendanceDialog(QFrame):
         super().__init__(parent)
         self.attendance_repository = AttendanceRepository()
         self.setup_ui()
+        self.esc_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Escape), self)
+        self.esc_shortcut.activated.connect(self.cancel_delete)
 
     def setup_ui(self):
         self.setObjectName("confirmCard")

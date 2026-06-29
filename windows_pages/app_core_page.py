@@ -100,6 +100,8 @@ class AppCorePage(QWidget):
             self.dashboard_page.search_input.show()
             self.dashboard_page.filter_date_btn.show()
             self.dashboard_page.reset_btn.show()
+            self.dashboard_page.neuro_table.setColumnHidden(0, False)
+            self.dashboard_page.cardio_table.setColumnHidden(0, False)
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
