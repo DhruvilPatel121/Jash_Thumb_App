@@ -1,7 +1,8 @@
 from database.mongodb_connection import MongoDBConnection, check_connection
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 from utils.db_executor import DBExecutor 
+
 
 class PatientRepository:
     def __init__(self):
@@ -21,6 +22,8 @@ class PatientRepository:
         gender,
         department,
         problem,
+        payment_per_day,
+        paid_days,
         fingerprint_template
     ):
         serial_no = (
@@ -37,6 +40,8 @@ class PatientRepository:
                 "gender": gender,
                 "department": department,
                 "problem": problem,
+                "payment_per_day": payment_per_day,
+                "paid_days": paid_days,
                 "fingerprint_template": fingerprint_template,
                 "created_at": datetime.now() # UTC format
             }
@@ -53,20 +58,31 @@ class PatientRepository:
             logging.error(f"Patient fatch from database Error: {error}", exc_info=True)
             return []
 
+
     def get_patient_data(self, organization_id, selected_date=None, search_text=None):
         try:
             query = {"organization_id": organization_id}
+
             if selected_date:
-                query["created_at"] = selected_date
+                start_date = datetime.strptime(selected_date, "%Y-%m-%d")
+                end_date = start_date + timedelta(days=1)
+
+                query["created_at"] = {
+                    "$gte": start_date,
+                    "$lt": end_date
+                }
+
             if search_text:
                 query["$or"] = [
                     {"name": {"$regex": search_text, "$options": "i"}},
                     {"mobile": {"$regex": search_text, "$options": "i"}},
                     {"problem": {"$regex": search_text, "$options": "i"}},
                 ]
+
             return list(self.patients.find(query))
+
         except Exception as error:
-            logging.error(f"Patient fatch from database Error: {error}", exc_info=True)
+            logging.error(f"Patient fetch from database Error: {error}", exc_info=True)
             return []
 
     def count_patients(self, organization_id):
