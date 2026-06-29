@@ -184,6 +184,8 @@ class RegistrationPage(QWidget):
         self.gender_label = QLabel("Gender")
         self.department_label = QLabel("Department")
         self.problem_label = QLabel("Problem")
+        self.payment_label = QLabel("Payment Per Day")
+        self.total_days_label = QLabel("Total Days")
 
         label_style = """
         QLabel{
@@ -202,7 +204,10 @@ class RegistrationPage(QWidget):
                 self.age_label,
                 self.gender_label,
                 self.department_label,
-                self.problem_label
+                self.problem_label,
+                self.payment_label,
+                self.total_days_label
+
             ]:
             lbl.setStyleSheet(label_style)
             lbl.setFixedWidth(120)
@@ -213,15 +218,23 @@ class RegistrationPage(QWidget):
         self.name_input = QLineEdit()
         self.mobile_input = QLineEdit()
         self.age_input = QLineEdit()
+        self.payment_input = QLineEdit()
+        self.total_days_input = QLineEdit()
         self.name_input.setPlaceholderText("   Enter full name")
         self.mobile_input.setPlaceholderText("   Enter phone number")
         self.age_input.setPlaceholderText("   Enter Age")
+        self.payment_input.setPlaceholderText("   Enter daily fee")
+        self.total_days_input.setPlaceholderText("   Enter paid days")
         number_validator = QRegularExpressionValidator(QRegularExpression("^[0-9]*$"))
         self.mobile_input.setMaxLength(10)
         self.age_input.setMaxLength(6)
         age_regex = QRegularExpression(r"^[0-9]{1,3}(\.(1[0-1]?|[2-9])?)?$")
         age_validator = QRegularExpressionValidator(age_regex)
         self.age_input.setValidator(age_validator)
+        self.payment_input.setValidator(number_validator)
+        self.total_days_input.setValidator(number_validator)
+        self.payment_input.setMaxLength(7)
+        self.total_days_input.setMaxLength(4)
         self.mobile_input.setValidator(number_validator)
         self.neuro_radio = QRadioButton("Neuro")
         self.ortho_radio = QRadioButton("Ortho")
@@ -300,7 +313,10 @@ class RegistrationPage(QWidget):
             self.name_input,
             self.mobile_input,
             self.age_input,
-            self.problem_input
+            self.problem_input,
+            self.payment_input,
+            self.total_days_input
+
         ]:
             widget.setStyleSheet(input_style)
             widget.setSizePolicy(
@@ -313,15 +329,11 @@ class RegistrationPage(QWidget):
         self.form_layout.addRow(self.mobile_label, self.mobile_input)
         self.form_layout.addRow(self.age_label, self.age_input)
         
-        self.form_layout.addRow(
-            self.gender_label,
-            gender_layout
-        )
+        self.form_layout.addRow(self.gender_label,gender_layout)
         self.form_layout.addRow(self.department_label, self.department_layout)
-        self.form_layout.addRow(
-            self.problem_label,
-            self.problem_input
-        )
+        self.form_layout.addRow(self.problem_label,self.problem_input)
+        self.form_layout.addRow(self.payment_label,self.payment_input)
+        self.form_layout.addRow(self.total_days_label,self.total_days_input)
         self.patient_layout.addStretch()
 
 
@@ -617,14 +629,14 @@ class RegistrationPage(QWidget):
             )
             return False 
             
-        if not self.template_bytes:
-            ToastNotification.show_toast(
-                self,
-                "warning",
-                "Fingerprint Required",
-                "Please scan fingerprint first."
-            )
-            return False
+        # if not self.template_bytes:
+        #     ToastNotification.show_toast(
+        #         self,
+        #         "warning",
+        #         "Fingerprint Required",
+        #         "Please scan fingerprint first."
+        #     )
+        #     return False
         return True
             
     
@@ -764,6 +776,8 @@ class RegistrationPage(QWidget):
         elif self.ortho_radio.isChecked():
             department = "Ortho"
         problem = self.problem_input.text().strip()
+        payment_per_day = int(self.payment_input.text().strip())
+        paid_days = int(self.total_days_input.text().strip())
 
         try:
             existing_patient =self.is_fingerprint_already_registered()
@@ -786,6 +800,8 @@ class RegistrationPage(QWidget):
                 gender,
                 department,
                 problem,
+                payment_per_day,
+                paid_days,
                 self.template_bytes
             )
             if patient_id:
@@ -826,6 +842,8 @@ class RegistrationPage(QWidget):
         self.mobile_input.clear()
         self.age_input.clear()
         self.problem_input.clear()
+        self.payment_input.clear()
+        self.total_days_input.clear()
         self.gender_group.setExclusive(False)
         self.male_radio.setChecked(False)
         self.female_radio.setChecked(False)
