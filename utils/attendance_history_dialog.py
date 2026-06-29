@@ -2,6 +2,7 @@ from PyQt6.QtWidgets import (
      QVBoxLayout, QHBoxLayout, QLabel,
     QPushButton, QFrame, QGridLayout, QWidget, QComboBox
 )
+from PyQt6.QtGui import QShortcut, QKeySequence
 from PyQt6.QtCore import Qt
 from datetime import datetime
 
@@ -11,6 +12,8 @@ class AttendanceHistoryDialog(QFrame):
         self.hide()
         self.setFixedSize(1100, 720)
         self.setup_ui()
+        self.esc_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Escape), self)
+        self.esc_shortcut.activated.connect(self.hide)
 
     def setup_ui(self):
         self.setObjectName("historyCard")
@@ -40,9 +43,6 @@ class AttendanceHistoryDialog(QFrame):
         """)
         main_layout.addWidget(title_label)
 
-        # ==========================================
-        # 2. Info Frame (Header: Name - Visits - Dropdowns)
-        # ==========================================
         info_frame = QFrame()
         info_frame.setFixedHeight(65) 
         
@@ -58,24 +58,22 @@ class AttendanceHistoryDialog(QFrame):
         info_layout.setContentsMargins(25, 0, 25, 0) 
 
         label_style_title = "color: #64748B; font-size: 15px; border: none; background: transparent;"
-        
-        # Name Section (ડાબી બાજુ)
+        self.paid_days_label = QLabel("0")
+        self.used_days_label = QLabel("0")
+        self.balance_days_label = QLabel("0")
         name_title = QLabel("Patient: ")
         name_title.setStyleSheet(label_style_title)
         
         self.name_label = QLabel("Patient Name")
-        # નામ માટે Bold અને કલર ડાર્ક
         self.name_label.setStyleSheet("color: #0F172A; font-size: 20px; font-weight: bold; border: none; background: transparent;")
 
-        # Visits Section (વચ્ચે)
+        # Visits Section 
         visits_title = QLabel("Total Visits: ")
         visits_title.setStyleSheet(label_style_title)
         
         self.visits_label = QLabel("0")
-        # કાઉન્ટ માટે Bold અને અલગ કલર (Blue) જેથી હાઇલાઇટ થાય
         self.visits_label.setStyleSheet("color: #4F46E5; font-size: 22px; font-weight: bold; border: none; background: transparent;")
 
-        # Dropdowns Section (જમણી બાજુ)
         combo_style = """
             QComboBox {
                 border: 1px solid #CBD5E1;
@@ -121,20 +119,18 @@ class AttendanceHistoryDialog(QFrame):
         self.year_combo.setStyleSheet(combo_style)
         self.year_combo.setCursor(Qt.CursorShape.PointingHandCursor)
 
-        # ડ્રોપડાઉન ચેન્જ થાય ત્યારે ફિલ્ટર ફંક્શન કોલ થશે
         self.month_combo.currentIndexChanged.connect(self.filter_and_display)
         self.year_combo.currentIndexChanged.connect(self.filter_and_display)
 
-        # લેઆઉટમાં એડ કરવાનું ગોઠવણ (Left -> Center -> Right)
         info_layout.addWidget(name_title)
         info_layout.addWidget(self.name_label)
         
-        info_layout.addStretch() # વચ્ચે જગ્યા મુકવા માટે સ્ટ્રેચ
+        info_layout.addStretch() 
         
         info_layout.addWidget(visits_title)
         info_layout.addWidget(self.visits_label)
         
-        info_layout.addStretch() # વચ્ચે જગ્યા મુકવા માટે સ્ટ્રેચ
+        info_layout.addStretch() 
         
         info_layout.addWidget(self.month_combo)
         info_layout.addSpacing(10)
@@ -142,9 +138,7 @@ class AttendanceHistoryDialog(QFrame):
 
         main_layout.addWidget(info_frame)
 
-        # ==========================================
-        # 3. 1 to 31 Date Grid
-        # ==========================================
+        
         self.grid_frame = QFrame()
         self.grid_frame.setStyleSheet("""
             QFrame {
@@ -260,14 +254,11 @@ class AttendanceHistoryDialog(QFrame):
     def load_history(self, patient_name, history):
         self.name_label.setText(patient_name)
         
-        # આખો ડેટા એક વેરીએબલમાં સેવ કરી લીધો જેથી ફિલ્ટર કરી શકાય
         self.full_history = history 
         
-        # ડ્રોપડાઉન ના સિગ્નલ બ્લોક કરીએ જેથી ડેટા સેટ કરતી વખતે 2 વાર કોલ ના થાય
         self.month_combo.blockSignals(True)
         self.year_combo.blockSignals(True)
 
-        # બાય ડિફોલ્ટ અત્યારનો મહિનો અને વર્ષ સિલેક્ટ થઇ જશે
         now = datetime.now()
         self.month_combo.setCurrentIndex(now.month - 1)
         self.year_combo.setCurrentText(str(now.year))
@@ -275,21 +266,17 @@ class AttendanceHistoryDialog(QFrame):
         self.month_combo.blockSignals(False)
         self.year_combo.blockSignals(False)
 
-        # ડેટા ગ્રીડમાં દેખાડવા માટે ફિલ્ટર ફંક્શન કોલ કર્યું
         self.filter_and_display()
 
     def filter_and_display(self):
-        # પહેલા ગ્રીડના બધા બોક્સ ખાલી કરી દઈએ 
         for day, label in self.day_time_labels.items():
             label.setText("")
 
-        # યુઝરે ડ્રોપડાઉનમાંથી કયો મહિનો અને વર્ષ સિલેક્ટ કર્યા છે તે મેળવો
         selected_month = self.month_combo.currentIndex() + 1
         selected_year = int(self.year_combo.currentText())
 
         monthly_visits = 0
 
-        # આખા ડેટામાંથી ખાલી એજ મહિના/વર્ષ નો ડેટા ગ્રીડમાં મૂકો
         if hasattr(self, 'full_history'):
             for record in self.full_history:
                 raw_date = str(record.get("attendance_date", ""))
@@ -297,31 +284,46 @@ class AttendanceHistoryDialog(QFrame):
                     try:
                         date_obj = datetime.strptime(raw_date[:10], "%Y-%m-%d")
                         
-                        # જો સિલેક્ટ કરેલો મહિનો અને વર્ષ મેચ થાય તો જ બોક્સમાં ટાઈમ લખો
                         if date_obj.month == selected_month and date_obj.year == selected_year:
                             day = date_obj.day
                             raw_time = str(record.get("check_in_time", ""))
                             
-                            # 24-hour ટાઈમને 12-hour (AM/PM) માં કન્વર્ટ કરવા માટેનું લોજીક
                             display_time = raw_time 
                             if raw_time:
                                 try:
-                                    # જો ડેટાબેઝમાંથી સેકન્ડ્સ (Seconds) સાથે ટાઈમ આવતો હોય (દા.ત. "19:25:16")
                                     time_obj = datetime.strptime(raw_time, "%H:%M:%S")
-                                    display_time = time_obj.strftime("%I:%M %p") # %I એટલે 12-hr અને %p એટલે AM/PM
+                                    display_time = time_obj.strftime("%I:%M %p") 
                                 except ValueError:
                                     try:
-                                        # જો સેકન્ડ્સ વગરનો ટાઈમ આવતો હોય (દા.ત. "19:25")
                                         time_obj = datetime.strptime(raw_time, "%H:%M")
                                         display_time = time_obj.strftime("%I:%M %p")
                                     except ValueError:
-                                        pass # કોઈ એરર આવે તો મૂળ ટાઈમ એમને એમ રાખશે 
+                                        pass 
+                            
+                            # ---- NAVU PAYMENT LOGIC AHIYA THI SHARU THAY CHE ----
+                            used_days = int(record.get("used_days", 0) or 0)
+                            paid_days = int(record.get("paid_days", 0) or 0)
+                            
+                            if used_days <= paid_days:
+                                # Payment Done - Green Label
+                                status_html = "<br><span style='background-color: #DCFCE7; color: #16A34A; padding: 2px 6px; border-radius: 4px; font-size: 11px;'>Paid</span>"
+                                time_color = "#16A34A" 
+                            else:
+                                # Payment Due - Red Label
+                                status_html = "<br><span style='background-color: #FEE2E2; color: #DC2626; padding: 2px 6px; border-radius: 4px; font-size: 11px;'>Due</span>"
+                                time_color = "#DC2626"
+                                
+                            # Final text HTML format ma
+                            final_text = f"<span style='color: {time_color}; font-size: 13px;'>{display_time}</span>{status_html}"
+                            # --------------------------------------------------------
                             
                             if day in self.day_time_labels:
-                                self.day_time_labels[day].setText(display_time)
+                                self.day_time_labels[day].setTextFormat(Qt.TextFormat.RichText) # Rich text enable karyu
+                                self.day_time_labels[day].setText(final_text)
                                 monthly_visits += 1 
                     except ValueError:
                         pass
         
-        # સિલેક્ટ કરેલા મહિનામાં ટોટલ કેટલી વિઝિટ છે તે અપડેટ કરો
         self.visits_label.setText(str(monthly_visits))
+
+
