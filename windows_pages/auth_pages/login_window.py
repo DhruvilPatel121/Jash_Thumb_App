@@ -101,29 +101,7 @@ class LoginPage(QWidget):
         self.eye_action.triggered.connect(self.toggle_password_visibility)
         self.password_input.addAction(self.eye_action, QLineEdit.ActionPosition.TrailingPosition)
         self.card_layout.addWidget(self.password_input)
-
-        self.forgot_password_btn = QPushButton("Forgot Password?")
-        self.forgot_password_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.forgot_password_btn.setStyleSheet("""
-            QPushButton{
-                border: none;
-                background: transparent;
-                color: #5C62D6;
-                font-size: 13px;
-                text-align: right;
-            }
-            QPushButton:hover{
-                color: #4348AB;
-                text-decoration: underline;
-            }
-        """)
-
-        self.forgot_layout = QHBoxLayout()
-        self.forgot_layout.addStretch()
-        self.forgot_layout.addWidget(self.forgot_password_btn)
-        self.forgot_password_btn.clicked.connect(self.open_forgot_password)
-        self.card_layout.addLayout(self.forgot_layout)
-
+        self.card_layout.addSpacing(20)
         self.login_button = QPushButton("LOGIN")
         self.login_button.setFixedHeight(55)
         self.login_button.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -157,6 +135,7 @@ class LoginPage(QWidget):
         self.card_layout.addWidget(self.message_container)
 
         self.card_layout.addStretch()
+        
     def showEvent(self, event):
         super().showEvent(event)
         QTimer.singleShot(0, self.username_input.setFocus)
@@ -169,10 +148,10 @@ class LoginPage(QWidget):
             self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
             self.eye_action.setIcon(QIcon(resource_path("assets/eye.png")))
     def reset_login_state(self):
+        self.username_input.setEnabled(True)
+        self.password_input.setEnabled(True)
         self.login_button.setText("LOGIN")
         self.login_button.setEnabled(True)
-    def open_forgot_password(self):
-        self.main_window.show_forgot_page()
 
     def validate_login(self):
         username = self.username_input.text().strip()
@@ -191,11 +170,21 @@ class LoginPage(QWidget):
             return
         self.login_button.setText("LOGGING IN...")
         self.login_button.setEnabled(False)
+        self.username_input.setEnabled(False)
+        self.password_input.setEnabled(False)
         QApplication.processEvents()
         hashed_password = hashlib.sha256(raw_password.encode('utf-8')).hexdigest()
         organization = self.organization_repository.verify_login(username, hashed_password)
         
         if organization:
+            if organization.get("is_locked", False) == True:
+                self.reset_login_state()
+                MessageManager.show_message(
+                    self.message_label, 
+                    "Account is locked! Please contact Admin.", 
+                    "error"
+                )
+                return
             Session.login(organization["_id"], organization["email"])
             self.main_window.show_app_core()
         else:

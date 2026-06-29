@@ -1,47 +1,59 @@
-from PyQt6.QtWidgets import QFrame, QVBoxLayout, QPushButton
-from PyQt6.QtCore import pyqtSignal, QSize
-from PyQt6.QtGui import QIcon
+from PyQt6.QtWidgets import QFrame, QVBoxLayout, QPushButton, QGraphicsDropShadowEffect
+from PyQt6.QtCore import pyqtSignal, QSize, Qt, QPropertyAnimation, QRect
+from PyQt6.QtGui import QIcon, QColor
 
+# Tamari banaveli resource_path file ahiya import kari chhe
+from utils.resource_path import resource_path 
 
 class Sidebar(QFrame):
     dashboard_clicked = pyqtSignal()
     registration_clicked = pyqtSignal()
     patient_clicked = pyqtSignal()
-    logout_clicked = pyqtSignal()
+    
+    state_changed = pyqtSignal(bool) 
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.is_open = False
         self.setup_ui()
 
     def setup_ui(self):
-        self.setFixedWidth(220)
+        self.setFixedWidth(240)
         self.setStyleSheet("""
             QFrame {
                 background-color: #FFFFFF;
-                border-right: 2px solid #C2C2C2;
+                border-right: 2px solid #E2E8F0;
             }
         """)
+        
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(15)
+        shadow.setColor(QColor(0, 0, 0, 40))
+        shadow.setOffset(2, 0)
+        self.setGraphicsEffect(shadow)
 
         layout = QVBoxLayout()
-        layout.setContentsMargins(15, 20, 15, 20)
-        layout.setSpacing(10)
+        layout.setContentsMargins(20, 80, 20, 20) 
+        layout.setSpacing(20)
         self.setLayout(layout)
 
+        # ==========================================
+        # Ahiya resource_path add karyu chhe
+        # ==========================================
         self.dashboard_btn = QPushButton("Dashboard")
-        self.dashboard_btn.setIcon(QIcon("assets/dashboard.png"))
+        self.dashboard_btn.setIcon(QIcon(resource_path("assets/dashboard.png")))
         self.dashboard_btn.setIconSize(QSize(24, 24))
 
         self.registration_btn = QPushButton("Registration")
-        self.registration_btn.setIcon(QIcon("assets/registation.png"))
+        self.registration_btn.setIcon(QIcon(resource_path("assets/registation.png")))
         self.registration_btn.setIconSize(QSize(24, 24))
 
         self.patient_btn = QPushButton("Patient")
-        self.patient_btn.setIcon(QIcon("assets/list.png"))
+        self.patient_btn.setIcon(QIcon(resource_path("assets/list.png")))
         self.patient_btn.setIconSize(QSize(24, 24))
 
-        self.logout_btn = QPushButton("Logout")
 
-        # Normal Button Style
+        # Styles
         self.normal_style = """
             QPushButton {
                 background-color: transparent;
@@ -59,7 +71,6 @@ class Sidebar(QFrame):
             }
         """
 
-        # Active Button Style
         self.active_style = """
             QPushButton{
                 background-color: #5C62D6;
@@ -76,52 +87,63 @@ class Sidebar(QFrame):
             }
         """
 
-        # Logout Style
-        logout_style = """
-            QPushButton{
-                background-color: #FEF2F2;
-                color: #DC2626;
-                border: 1px solid #FECACA;
-                border-radius: 10px;
-                text-align: left;
-                padding: 12px 16px;
-                font-size: 14px;
-                font-weight: bold;
-            }
-            QPushButton:hover{
-                background-color: #FEE2E2;
-                border: 1px solid #FCA5A5;
-            }
-            QPushButton:pressed{
-                background-color: #FECACA;
-            }
-        """
 
-        # Apply Normal Style
         for btn in [self.dashboard_btn, self.registration_btn, self.patient_btn]:
             btn.setStyleSheet(self.normal_style)
+            btn.setCursor(Qt.CursorShape.PointingHandCursor)
 
-        self.logout_btn.setStyleSheet(logout_style)
 
         layout.addWidget(self.dashboard_btn)
         layout.addWidget(self.registration_btn)
         layout.addWidget(self.patient_btn)
         layout.addStretch()
-        layout.addWidget(self.logout_btn)
 
-        # Signals
-        self.dashboard_btn.clicked.connect(self.dashboard_clicked.emit)
-        self.registration_btn.clicked.connect(self.registration_clicked.emit)
-        self.patient_btn.clicked.connect(self.patient_clicked.emit)
-        self.logout_btn.clicked.connect(self.logout_clicked.emit)
+        self.dashboard_btn.clicked.connect(lambda: self.menu_clicked("dashboard"))
+        self.registration_btn.clicked.connect(lambda: self.menu_clicked("registration"))
+        self.patient_btn.clicked.connect(lambda: self.menu_clicked("patient"))
+
+        self.setGeometry(-240, 0, 240, 1000) 
+
+        self.animation = QPropertyAnimation(self, b"geometry")
+        self.animation.setDuration(250) 
+
+    def menu_clicked(self, page):
+        self.close_sidebar()
+        if page == "dashboard":
+            self.dashboard_clicked.emit()
+        elif page == "registration":
+            self.registration_clicked.emit()
+        elif page == "patient":
+            self.patient_clicked.emit()
+
+    def toggle_sidebar(self):
+        if self.is_open:
+            self.close_sidebar()
+        else:
+            self.open_sidebar()
+
+    def open_sidebar(self):
+        parent_height = self.parent().height() if self.parent() else 800
+        self.animation.setStartValue(QRect(-240, 0, 240, parent_height))
+        self.animation.setEndValue(QRect(0, 0, 240, parent_height))
+        self.is_open = True
+        self.raise_() 
+        self.animation.start()
+        self.state_changed.emit(True) 
+
+    def close_sidebar(self):
+        parent_height = self.parent().height() if self.parent() else 800
+        self.animation.setStartValue(QRect(0, 0, 240, parent_height))
+        self.animation.setEndValue(QRect(-240, 0, 240, parent_height))
+        self.is_open = False
+        self.animation.start()
+        self.state_changed.emit(False) 
 
     def set_active_page(self, page_name):
-        # Reset All Buttons
         self.dashboard_btn.setStyleSheet(self.normal_style)
         self.registration_btn.setStyleSheet(self.normal_style)
         self.patient_btn.setStyleSheet(self.normal_style)
 
-        # Apply Active Style
         if page_name == "dashboard":
             self.dashboard_btn.setStyleSheet(self.active_style)
         elif page_name == "patient":

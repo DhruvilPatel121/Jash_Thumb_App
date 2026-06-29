@@ -1,5 +1,6 @@
 from PyQt6.QtWidgets import (QFrame, QLabel, QLineEdit, QPushButton, QVBoxLayout,QHBoxLayout, QFormLayout, QRadioButton, QButtonGroup)
-from PyQt6.QtCore import Qt, pyqtSignal,QEvent
+from PyQt6.QtCore import Qt, pyqtSignal,QEvent,QRegularExpression
+from PyQt6.QtGui import QRegularExpressionValidator
 from utils.toast_notification import ToastNotification
 from database.patient_repository import PatientRepository
 from database.mongodb_connection import DatabaseConnectionError
@@ -7,7 +8,7 @@ from utils.scanner_manager import ScannerManager
 from utils.enrollment import Enrollment
 from utils.verification import Verification
 from utils.session import Session
-
+from database.attendance_repository import AttendanceRepository
 
 class UpdatePatientDialog(QFrame):
     patient_updated = pyqtSignal()
@@ -20,6 +21,7 @@ class UpdatePatientDialog(QFrame):
         self.enrollment = Enrollment(self.scanner)
         self.verification = Verification(self.scanner)
         self.template_bytes = None
+        self.attendance_repository = AttendanceRepository()
 
     def setup_ui(self):
         self.setObjectName("updateCard")
@@ -91,39 +93,43 @@ class UpdatePatientDialog(QFrame):
         
         /* --- General Button Style --- */
         QPushButton {
-            padding: 10px 20px;
+            padding: 10px 20px; 
             font-size: 14px;
             font-weight: bold;
             border-radius: 6px;
             min-width: 100px;
         }
         
-        /* --- Cancel Button (Kept Gray/Neutral) --- */
+        /* --- Cancel Button --- */
         QPushButton#cancelBtn {
-            background-color: #f1f5f9;
+            background-color: #F1F5F9;
             color: #475569;
-            border: 1px solid #cbd5e1;
+            border: 1px solid #CBD5E1;
         }
         QPushButton#cancelBtn:hover {
-            background-color: #e2e8f0;
+            background-color: #E2E8F0;
+        }
+        QPushButton#cancelBtn:pressed {
+            border: 1px solid #94A3B8;
+            padding-top: 13px; 
+            padding-left: 23px; 
         }
 
-        /* --- Capture & Save Buttons (Your New Style Applied Here) --- */
+        /* --- Capture & Save Buttons --- */
         QPushButton#captureBtn, QPushButton#saveBtn {
             background-color: #5C62D6;
             color: white;
             border: none;
             border-radius: 10px;
-            font-size: 14px;
-            font-weight: 600;
         }
         QPushButton#captureBtn:hover, QPushButton#saveBtn:hover {
             background-color: #4C51BF;
         }
         QPushButton#captureBtn:pressed, QPushButton#saveBtn:pressed {
+            background-color: #4C51BF; 
             border: 1px solid #1D4ED8;
-            padding-top: 2px;
-            padding-left: 2px;
+            padding-top: 13px; 
+            padding-left: 23px; 
         }
         """)
 
@@ -144,6 +150,11 @@ class UpdatePatientDialog(QFrame):
         self.name_input = QLineEdit()
         self.mobile_input = QLineEdit()
         self.age_input = QLineEdit()
+        self.mobile_input.setMaxLength(10)
+        self.age_input.setMaxLength(3)
+        number_validator = QRegularExpressionValidator(QRegularExpression("^[0-9]*$"))
+        self.age_input.setValidator(number_validator)
+        self.mobile_input.setValidator(number_validator)
         
         # Gender Radio Buttons
         self.gender_layout = QHBoxLayout()
@@ -158,8 +169,8 @@ class UpdatePatientDialog(QFrame):
 
         # Department Radio Buttons
         self.department_layout = QHBoxLayout()
-        self.dep1_radio = QRadioButton("Neurologist")
-        self.dep2_radio = QRadioButton("Cardiologist")
+        self.dep1_radio = QRadioButton("Neuro")
+        self.dep2_radio = QRadioButton("Ortho")
         self.department_group = QButtonGroup()
         self.department_group.addButton(self.dep1_radio)
         self.department_group.addButton(self.dep2_radio)
@@ -177,6 +188,7 @@ class UpdatePatientDialog(QFrame):
         form_layout.addRow("Problem", self.problem_input)
         
         self.capture_btn = QPushButton("Capture")
+        self.capture_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.capture_btn.clicked.connect(self.capture_fingerprint)
         self.capture_btn.setObjectName("captureBtn")
         self.capture_btn.setFixedSize(120, 40)
@@ -204,9 +216,11 @@ class UpdatePatientDialog(QFrame):
         main_layout.addLayout(button_layout)
 
         self.cancel_btn = QPushButton("Cancel")
+        self.cancel_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.cancel_btn.setObjectName("cancelBtn") 
         
         self.save_btn = QPushButton("Save")
+        self.save_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.save_btn.setObjectName("saveBtn")
 
         button_layout.addWidget(self.cancel_btn)
@@ -253,9 +267,9 @@ class UpdatePatientDialog(QFrame):
         self.problem_input.setText(patient.get("problem", ""))
 
         department = patient.get("department", "")
-        if department == "Neurologist":
+        if department == "Neuro":
             self.dep1_radio.setChecked(True)
-        elif department == "Cardiologist":
+        elif department == "Ortho":
             self.dep2_radio.setChecked(True)
             
         gender = patient.get("gender", "Male")
@@ -287,9 +301,9 @@ class UpdatePatientDialog(QFrame):
 
         department = ""
         if self.dep1_radio.isChecked():
-            department = "Neurologist"
+            department = "Neuro"
         elif self.dep2_radio.isChecked():
-            department = "Cardiologist"
+            department = "Ortho"
 
         if not name or not mobile or not gender:
             ToastNotification.show_toast(
@@ -322,6 +336,14 @@ class UpdatePatientDialog(QFrame):
             )
 
             if success:
+                self.attendance_repository.update_attendance_details(
+                    str(self.patient_to_update["_id"]),
+                    name,
+                    mobile,
+                    age,
+                    department,
+                    problem
+                )
                 self.patient_updated.emit()
                 self.hide()
                 ToastNotification.show_toast(
@@ -331,12 +353,13 @@ class UpdatePatientDialog(QFrame):
                     message="Patient updated successfully.",
                     duration=3000
                 )
+
                 self.fingerprint_status.clear()
             else:
                 self.fingerprint_status.clear()
                 self.hide()
         except DatabaseConnectionError as error:
-            ToastNotification.show_toast(self, "error", "Connection Error", str(error))
+            ToastNotification.show_toast(self, "error", "Local database is not available.", str(error))
             return
         
     def update_fingerprint_status(self, message, color="#64748B"):

@@ -1,4 +1,4 @@
-from ctypes import c_bool, c_uint32, byref
+from ctypes import c_uint32, byref
 import logging
 
 class Verification:

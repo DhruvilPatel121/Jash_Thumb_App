@@ -1,12 +1,14 @@
 from database.mongodb_connection import MongoDBConnection, check_connection
 from datetime import datetime
 import logging
+from utils.db_executor import DBExecutor 
 
 class PatientRepository:
     def __init__(self):
         self.db = MongoDBConnection()
-        self.patients = (self.db.patients)
-        self.deleted_patients = (self.db.deleted_patients)
+        self.patients = self.db.patients
+        self.deleted_patients = self.db.deleted_patients
+        self.executor = DBExecutor()  
 
     @check_connection
     def create_patient(
@@ -36,16 +38,26 @@ class PatientRepository:
                 "department": department,
                 "problem": problem,
                 "fingerprint_template": fingerprint_template,
-                "created_at": datetime.now(),
+                "created_at": datetime.now() # UTC format
             }
-            return self.patients.insert_one(patient).inserted_id
+            return self.executor.execute("INSERT", "patients", patient)
         except Exception as error:
             logging.error(f"Create Patient Error: {error}", exc_info=True)
             return None
 
-    def get_all_by_organization(self, organization_id, search_text=None):
+    def get_all_by_organization(self, organization_id):
         try:
             query = {"organization_id": organization_id}
+            return list(self.patients.find(query))
+        except Exception as error:
+            logging.error(f"Patient fatch from database Error: {error}", exc_info=True)
+            return []
+
+    def get_patient_data(self, organization_id, selected_date=None, search_text=None):
+        try:
+            query = {"organization_id": organization_id}
+            if selected_date:
+                query["created_at"] = selected_date
             if search_text:
                 query["$or"] = [
                     {"name": {"$regex": search_text, "$options": "i"}},
@@ -54,7 +66,7 @@ class PatientRepository:
                 ]
             return list(self.patients.find(query))
         except Exception as error:
-            logging.error(f"Patient fatch from database Error: {error}",exc_info=True)
+            logging.error(f"Patient fatch from database Error: {error}", exc_info=True)
             return []
 
     def count_patients(self, organization_id):
@@ -62,14 +74,6 @@ class PatientRepository:
             return self.patients.count_documents({"organization_id": organization_id})
         except Exception:
             return 0
-
-    @check_connection
-    def is_mobile_registered(self, mobile):
-        try:
-            return bool(self.patients.find_one({"mobile": mobile}))
-        except Exception as e:
-            logging.exception("Mobile Check Error")
-            return False
 
     @check_connection
     def update_patient(
@@ -94,12 +98,8 @@ class PatientRepository:
             }
             if fingerprint_template:
                 update_data["fingerprint_template"] = fingerprint_template
-            return (
-                self.patients.update_one(
-                    {"_id": patient_id}, {"$set": update_data}
-                ).modified_count
-                > 0
-            )
+            
+            return self.executor.execute("UPDATE", "patients", {"_id": patient_id}, {"$set": update_data})
         except Exception as error:
             logging.error(f"Update Patient Error | Patient ID: {patient_id} | Error: {error}", exc_info=True)
             return False
@@ -110,8 +110,12 @@ class PatientRepository:
             patient = self.patients.find_one({"_id": patient_id})
             if not patient:
                 return False
+            
+            # Backup: deleted_patients
             self.deleted_patients.insert_one(patient)
-            result = self.patients.delete_one({"_id": patient_id})
+            
+            result = self.executor.execute("DELETE", "patients", {"_id": patient_id})
+            
             self.patients.update_many(
                 {
                     "organization_id": patient["organization_id"],
@@ -119,7 +123,7 @@ class PatientRepository:
                 },
                 {"$inc": {"serial_no": -1}},
             )
-            return result.deleted_count > 0
+            return result
         except Exception as error:
             logging.error(f"Delete Patient Error: {error}", exc_info=True)
             return False

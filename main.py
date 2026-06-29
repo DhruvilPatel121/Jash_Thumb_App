@@ -4,13 +4,38 @@ from PyQt6.QtCore import QTimer
 from windows_pages.main_window import MainWindow
 import logging
 import traceback
+from PyQt6.QtGui import QIcon
+import os
 
+import os
+import logging
+
+log_dir = os.path.join(
+    os.environ["LOCALAPPDATA"],
+    "JashThumbAttendance"
+)
+
+os.makedirs(log_dir, exist_ok=True)
+
+log_file = os.path.join(
+    log_dir,
+    "attendance.log"
+)
 
 logging.basicConfig(
-    filename="attendance.log",
+    filename=log_file,
     level=logging.ERROR,
     format="%(asctime)s - %(levelname)s - %(message)s"
-    )
+)
+
+
+def resource_path(relative_path):
+    try:
+        base_path = sys._MEIPASS
+    except AttributeError:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
 
 def exception_hook(exc_type, exc_value, exc_traceback):
     logging.critical(
@@ -32,7 +57,9 @@ def connect_db(window):
 
 def main():
     app = QApplication(sys.argv)
+    app.setWindowIcon(QIcon(resource_path("assets/logo.ico")))
     window = MainWindow()
+    window.setWindowIcon(QIcon(resource_path("assets/logo.ico")))
     window.show()
     QTimer.singleShot(100, lambda: connect_db(window))
     sys.exit(app.exec())

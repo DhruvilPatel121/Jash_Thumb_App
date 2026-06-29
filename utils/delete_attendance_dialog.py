@@ -1,17 +1,17 @@
 from PyQt6.QtWidgets import (QFrame, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QGraphicsDropShadowEffect)
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QColor
-from database.patient_repository import PatientRepository
+from database.attendance_repository import AttendanceRepository
 from utils.toast_notification import ToastNotification
 from database.mongodb_connection import DatabaseConnectionError
 
-class DeletePatientDialog(QFrame):
+class DeleteAttendanceDialog(QFrame):
 
-    patient_deleted = pyqtSignal()
+    attendance_deleted = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.patient_repository = PatientRepository()
+        self.attendance_repository = AttendanceRepository()
         self.setup_ui()
 
     def setup_ui(self):
@@ -55,7 +55,7 @@ class DeletePatientDialog(QFrame):
         card_layout.addLayout(icon_layout)
 
         # 2. Title
-        title = QLabel("Delete Patient")
+        title = QLabel("Delete Attendance")
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         title.setStyleSheet("""
             background-color: transparent;
@@ -129,13 +129,12 @@ class DeletePatientDialog(QFrame):
         button_layout.addWidget(self.confirm_delete_btn)
         card_layout.addLayout(button_layout)
 
-    # LOGIC REMAINS EXACTLY THE SAME
-    def show_dialog(self, patient):
-        self.patient_to_delete = patient
+    def show_dialog(self, record):
+        self.record_to_delete = record 
         
         self.delete_message.setText(
             f"Are you sure you want to delete?<br>"
-            f"<b style='color:#0F172A; font-size:15px;'>{patient['name']}</b><br><br>"
+            f"<b style='color:#0F172A; font-size:15px;'>{record.get('patient_name', 'Unknown')}</b><br><br>"
             f"<span style='color:#EF4444; font-size:12px;'>This action cannot be undone.</span>"
         )
 
@@ -153,8 +152,9 @@ class DeletePatientDialog(QFrame):
         self.hide()
 
     def confirm_delete(self):
-        success = self.patient_repository.delete_patient(
-            self.patient_to_delete["_id"]
+        # Calls the function we just created in AttendanceRepository
+        success = self.attendance_repository.delete_attendance(
+            self.record_to_delete["_id"]
         )
 
         try:
@@ -163,24 +163,23 @@ class DeletePatientDialog(QFrame):
                 ToastNotification.show_toast(
                     parent=self.parent(),
                     toast_type="success",
-                    title="Patient Deleted",
-                    message="The patient record has been successfully deleted.",
+                    title="Attendance Deleted",
+                    message="The attendance record has been successfully deleted.",
                     duration=4000
                 )
-                self.patient_deleted.emit()
+                self.attendance_deleted.emit() # This triggers the dashboard to reload
             else:
                 ToastNotification.show_toast(
                     parent=self.parent(),
                     toast_type="error",
                     title="Error",
-                    message="Failed to delete patient.",
+                    message="Failed to delete attendance.",
                     duration=4000)
                 
-        except DatabaseConnectionError as error:
+        except Exception as error:
             ToastNotification.show_toast(
                 self,
                 "error",
-                "Local database is not available.",
+                "Database Error.",
                 str(error)
             )
-            return

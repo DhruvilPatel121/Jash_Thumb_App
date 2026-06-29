@@ -30,8 +30,7 @@ class AttendanceWorker(QThread):
         self.patient_repository = (PatientRepository())
         self.attendance_repository = (AttendanceRepository())
         self.cached_patients = []
-
-
+        
     def start_attendance(self):
         self.organization_id = Session.organization_id
         self.cached_patients = (
@@ -97,19 +96,35 @@ class AttendanceWorker(QThread):
                 self.already_taken.emit(
                     patient["name"])
                 return
+            department = patient.get("department", "").strip()
+            
+            if not department or department.lower() not in ["ortho", "neuro"]:
+                department = "Ortho"
+            
+            patient["department"] = department
+            
             self.attendance_repository.mark_attendance(
-                    self.organization_id,
-                    str(patient["_id"]),
-                    patient.get("serial_no", ""),       
-                    patient.get("name", ""),        
-                    patient.get("mobile", ""),
-                    today_date,
-                    current_time,
-                    patient.get("department", ""), 
-                    patient.get("age", ""),       
-                    patient.get("problem", "") 
-                )
+                self.organization_id,
+                str(patient["_id"]),
+                patient.get("token_no", ""),
+                patient.get("name", ""),
+                patient.get("mobile", ""),
+                patient.get("gender", ""),
+                today_date,
+                current_time,
+                department,
+                patient.get("age", ""),
+                patient.get("problem", "")
+            )
             patient["attendance_time"] = current_time
+            
+            token_no = self.attendance_repository.get_department_attendance_count(
+                self.organization_id, today_date, department
+            )
+            
+            patient["token_no"] = token_no
+            patient["display_department"] = department
+
             self.attendance_marked.emit(patient)
 
         finally:
@@ -124,6 +139,7 @@ class AttendanceWorker(QThread):
             return
         while self.running:
             try:
+                QThread.msleep(300)
                 if self.processing:
                     QThread.msleep(100)
                     continue

@@ -1,6 +1,5 @@
 import os
 import ctypes
-import numpy as np
 from ctypes import c_void_p, byref
 from utils.resource_path import resource_path
 import logging
@@ -12,6 +11,9 @@ class ScannerManager:
         self.sdk_loaded = False
         self.device_connected = False
         self.current_mode = "IDLE"
+        self.image_size = 300 * 400
+        self.image_buffer = (ctypes.c_ubyte * self.image_size)()
+
 
     def load_sdk(self):
         if self.sdk_loaded:
@@ -89,20 +91,19 @@ class ScannerManager:
 
     def capture_image_attend(self):
         try:
-            image_size = 300 * 400
-            image_buffer = (ctypes.c_ubyte * image_size)()
-            result = self.sdk.SGFPM_GetImage(self.hfpm, image_buffer)
+            result = self.sdk.SGFPM_GetImage(self.hfpm, self.image_buffer)
             
             if result == 0:
-                quality_score = self.get_image_quality(image_buffer)
+                quality_score = self.get_image_quality(self.image_buffer)
                 
                 if quality_score < 20:
                     return None, "Try again, image is not clear."
-                return image_buffer, "Success"
+                return self.image_buffer, "Success"
             
             return None, "Please place your finger on the scanner."
         except Exception as error:
             return None, f"Error: {str(error)}"
+    
         
     def close_device(self):
         try:

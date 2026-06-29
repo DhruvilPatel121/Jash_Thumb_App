@@ -1,7 +1,7 @@
 import os
-from PyQt6.QtWidgets import (QWidget,QButtonGroup,QHBoxLayout,QVBoxLayout,QPushButton,QFrame, QLabel, QRadioButton,QTableWidget, QTableWidgetItem,QHeaderView,QAbstractItemView,QComboBox)
-from PyQt6.QtCore import Qt,QDateTime,QTimer,QEvent,QSize
-from PyQt6.QtGui import QPixmap,QMovie
+from PyQt6.QtWidgets import (QWidget,QButtonGroup,QHBoxLayout,QVBoxLayout,QPushButton,QFrame, QLabel, QRadioButton)
+from PyQt6.QtCore import Qt,QDateTime,QTimer,QEvent,QSize,QRegularExpression
+from PyQt6.QtGui import QPixmap,QMovie,QRegularExpressionValidator
 from PyQt6.QtWidgets import QFormLayout, QLineEdit
 from utils.toast_notification import ToastNotification
 from PyQt6.QtWidgets import QSizePolicy
@@ -13,11 +13,14 @@ from database.patient_repository import PatientRepository
 from database.mongodb_connection import DatabaseConnectionError
 from PyQt6.QtCore import pyqtSignal
 from utils.resource_path import resource_path
+from PyQt6.QtGui import QDesktopServices
+from PyQt6.QtCore import QUrl
+
 
 class RegistrationPage(QWidget):
 
     patient_registered = pyqtSignal()
-
+    role_changed = pyqtSignal(str)
     def __init__(self, db=None):
         super().__init__()
 
@@ -27,7 +30,7 @@ class RegistrationPage(QWidget):
         self.timer.timeout.connect(self.update_date_time)
         self.timer.start(1000)
         self.template_bytes = None
-
+        self.current_role = "Admin"
         self.scanner = ScannerManager()
         self.enrollment = Enrollment(self.scanner)
         self.verification = Verification(self.scanner)
@@ -42,10 +45,10 @@ class RegistrationPage(QWidget):
 
     def reset_scanner_ui(self):
         self.template_bytes = None
-        self.device_status.setText("Device Status : Ready 🟢")
+        self.device_status.setText("Device Status : --")
         self.update_scan_status(
                 "assets/fingerscan.gif",
-                "Ready To Scan",
+                "Click on Scanner Button",
                 "#3B82F6"
         )
         self.capture_status.setText("Place your finger on the scanner")
@@ -71,8 +74,8 @@ class RegistrationPage(QWidget):
 
         # contentlayout create
         self.content_layout = QVBoxLayout()
-        self.content_layout.setContentsMargins(50, 40, 50, 40) # Adjusted margins for better page framing
-        self.content_layout.setSpacing(30)
+        self.content_layout.setContentsMargins(20, 20, 20, 20) # Adjusted margins for better page framing
+        self.content_layout.setSpacing(15)
         self.content_area.setLayout(self.content_layout)
 
         # Header Layout
@@ -117,6 +120,9 @@ class RegistrationPage(QWidget):
             font-weight: 600;
         }
         """)
+        self.user_label.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.user_label.mousePressEvent = self.show_role_popup
+        self.header_layout.addSpacing(60)
         self.header_layout.addWidget(self.page_title)
         self.header_layout.addStretch()
         self.header_layout.addWidget(self.date_label)
@@ -125,6 +131,7 @@ class RegistrationPage(QWidget):
         self.header_layout.addSpacing(20)
         self.header_layout.addWidget(self.user_label)
         self.content_layout.addLayout(self.header_layout)
+        self.content_layout.addSpacing(20)
 
 
         #registration body part where have detail and device status card
@@ -210,18 +217,21 @@ class RegistrationPage(QWidget):
         self.name_input.setPlaceholderText("   Enter full name")
         self.email_input.setPlaceholderText("   Enter email address")
         self.mobile_input.setPlaceholderText("   Enter phone number")
-        self.mobile_input.setMaxLength(10)
         self.age_input.setPlaceholderText("   Enter Age")
+        number_validator = QRegularExpressionValidator(QRegularExpression("^[0-9]*$"))
+        self.mobile_input.setMaxLength(10)
         self.age_input.setMaxLength(3)
-        self.neuro_radio = QRadioButton("Neurologist")
-        self.cardio_radio = QRadioButton("Cardiologist")
+        self.age_input.setValidator(number_validator)
+        self.mobile_input.setValidator(number_validator)
+        self.neuro_radio = QRadioButton("Neuro")
+        self.ortho_radio = QRadioButton("Ortho")
         self.dept_group = QButtonGroup()
         self.dept_group.addButton(self.neuro_radio)
-        self.dept_group.addButton(self.cardio_radio)
+        self.dept_group.addButton(self.ortho_radio)
         self.department_layout = QHBoxLayout()
         self.department_layout.setSpacing(20)
         self.department_layout.addWidget(self.neuro_radio)
-        self.department_layout.addWidget(self.cardio_radio)
+        self.department_layout.addWidget(self.ortho_radio)
         self.department_layout.addStretch()
         self.male_radio = QRadioButton("Male")
         self.female_radio = QRadioButton("Female")
@@ -265,7 +275,7 @@ class RegistrationPage(QWidget):
         self.male_radio.setStyleSheet(radio_button_style)
         self.female_radio.setStyleSheet(radio_button_style)
         self.neuro_radio.setStyleSheet(radio_button_style)
-        self.cardio_radio.setStyleSheet(radio_button_style)
+        self.ortho_radio.setStyleSheet(radio_button_style)
         gender_layout.addStretch()
         self.problem_input = QLineEdit()
         self.problem_input.setPlaceholderText(
@@ -532,21 +542,32 @@ class RegistrationPage(QWidget):
         self.button_layout.addWidget(self.clear_btn)
         self.button_layout.addStretch()
         self.content_layout.addStretch()
-
-
-        # NEW FOOTER CODE ADDED HERE
+        # Footer
         self.footer_layout = QHBoxLayout()
-        self.footer_layout.setContentsMargins(0, 15, 0, 0)
-        self.footer_label = QLabel("Handicraft By Shivvilon Solution")
+        self.footer_layout.setContentsMargins(0, 10, 0, 0)
+        
+        self.footer_label = QLabel("Handcraft By Shivvilon Solution")
         self.footer_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        self.footer_label.setCursor(Qt.CursorShape.PointingHandCursor)
+
         self.footer_label.setStyleSheet("""
             QLabel {
-                color: #94A3B8; /* Light slate gray */
+                color: #94A3B8;
                 font-size: 13px;
                 font-weight: 500;
                 letter-spacing: 0.5px;
             }
+            QLabel:hover {
+                color: #5C62D6; 
+                text-decoration: underline;
+            }
         """)
+        
+        def open_website(event):
+            QDesktopServices.openUrl(QUrl("https://shivvilonsolutions.com/"))
+        self.footer_label.mousePressEvent = open_website
+
         self.footer_layout.addWidget(self.footer_label)
         self.content_layout.addLayout(self.footer_layout)
 
@@ -554,7 +575,7 @@ class RegistrationPage(QWidget):
         self.male_radio.installEventFilter(self)
         self.female_radio.installEventFilter(self)
         self.neuro_radio.installEventFilter(self)
-        self.cardio_radio.installEventFilter(self)
+        self.ortho_radio.installEventFilter(self)
 
     def eventFilter(self, obj, event):
         if event.type() == QEvent.Type.KeyPress:
@@ -574,10 +595,10 @@ class RegistrationPage(QWidget):
                         return True
 
                     elif obj == self.neuro_radio:
-                        self.cardio_radio.setFocus()
+                        self.ortho_radio.setFocus()
                         return True
 
-                    elif obj == self.cardio_radio:
+                    elif obj == self.ortho_radio:
                         self.gender_sequence_active = False
                         self.problem_input.setFocus()
                         return True
@@ -659,7 +680,7 @@ class RegistrationPage(QWidget):
             return
         image, message = self.scanner.capture_image()
         if not image:
-
+            self.device_status.setText("Device Status : Connected 🟢 ")
             self.update_scan_status(
             "assets/Fingerprint_capture_fail.gif", 
             "Capture Fail",
@@ -667,6 +688,7 @@ class RegistrationPage(QWidget):
             )
             self.capture_status.setText(message)
             if "not clear" in message.lower() or "low" in message.lower():
+                    self.device_status.setText("Device Status : Connected 🟢 ")
                     self.update_scan_status(
                     "assets/Wrong fingerprint.gif", 
                     "Image not Clear",
@@ -678,6 +700,7 @@ class RegistrationPage(QWidget):
 
         self.template_bytes = (self.enrollment.create_template_bytes(image))
         if not self.template_bytes:
+            self.device_status.setText("Device Status : Connected 🟢 ")
             self.update_scan_status(
                 "⚠️",
                 "Template Failed",
@@ -687,7 +710,7 @@ class RegistrationPage(QWidget):
             self.scanner.close_device()
             self.scanner.terminate()
             return
-
+        self.device_status.setText("Device Status : Connected 🟢 ")
         self.update_scan_status(
             "assets/Fingerprint biometric success.gif", 
             "Fingerprint Captured",
@@ -700,27 +723,32 @@ class RegistrationPage(QWidget):
     def is_fingerprint_already_registered(self):
         try:
             organization_id = Session.organization_id
-
-            patients = (
-                self.patient_repository
-                .get_all_by_organization(
-                    organization_id))
+            patients = self.patient_repository.get_all_by_organization(organization_id)
+            
             if not self.verification.initialize_matching():
                 return None
+                
             try:
                 for patient in patients:
-                    stored_template = bytes(
-                        patient["fingerprint_template"]
-                    )
-                    score = self.verification.match_template(
-                        self.template_bytes,
-                        stored_template)
-                    if score >= 100:
-                        return patient
+                    template_data = patient.get("fingerprint_template")
+                    if not template_data:
+                        continue 
+                        
+                    try:
+                        stored_template = bytes(template_data)
+                        score = self.verification.match_template(self.template_bytes, stored_template)
+                        if score >= 80: 
+                            return patient
+                    except Exception as inner_e:
+                        print(f"Error in patient {patient.get('patient_name', 'Unknown')}: {inner_e}")
+                        continue
+                        
                 return None
             finally:
                 self.verification.terminate_matching()
-        except Exception:
+                
+        except Exception as e:
+            print(f"Main Error in is_fingerprint_already_registered: {e}") 
             return None
 
 
@@ -735,23 +763,12 @@ class RegistrationPage(QWidget):
         gender = ("Male" if self.male_radio.isChecked() else "Female")
         department = ""
         if self.neuro_radio.isChecked():
-            department = "Neurologist"
-        elif self.cardio_radio.isChecked():
-            department = "Cardiologist"
+            department = "Neuro"
+        elif self.ortho_radio.isChecked():
+            department = "Ortho"
         problem = self.problem_input.text().strip()
 
         try:
-            mobile = self.mobile_input.text().strip()
-            is_mobile_exist = self.patient_repository.is_mobile_registered(mobile)
-            if is_mobile_exist:
-                ToastNotification.show_toast(
-                    self,
-                    "warning",
-                    "Mobile Already Registered",
-                    f"The number {mobile} is already in use."
-                )
-                return
-            
             existing_patient =self.is_fingerprint_already_registered()
             if existing_patient:
                 ToastNotification.show_toast(
@@ -795,7 +812,7 @@ class RegistrationPage(QWidget):
             ToastNotification.show_toast(
                 self,
                 "error",
-                "Connection Error",
+                "Local database is not available.",
                 str(error))
             return
 
@@ -819,7 +836,7 @@ class RegistrationPage(QWidget):
         self.gender_group.setExclusive(True)
         self.dept_group.setExclusive(False)
         self.neuro_radio.setChecked(False)
-        self.cardio_radio.setChecked(False)
+        self.ortho_radio.setChecked(False)
         self.dept_group.setExclusive(True)    
         self.template_bytes = None
         self.gender_sequence_active = False
@@ -884,3 +901,7 @@ class RegistrationPage(QWidget):
             background: transparent;
         }}
         """)
+
+    def show_role_popup(self, event):
+        from utils.role_switch import open_role_switch_popup
+        open_role_switch_popup(self, getattr(self, 'current_role', 'Admin'), self.role_changed.emit)

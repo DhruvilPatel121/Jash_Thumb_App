@@ -2,8 +2,6 @@ from PyQt6.QtWidgets import (QWidget, QFrame, QLabel, QPushButton, QVBoxLayout,Q
 from PyQt6.QtCore import (Qt, QPropertyAnimation, QEasingCurve, QTimer, QSize, pyqtProperty)
 from PyQt6.QtGui import QColor, QFont
 
-from PyQt6.QtCore import QTimer
-
 
 class MessageManager:
     @staticmethod
@@ -202,7 +200,6 @@ class SuccessIcon(QLabel):
         font.setPointSize(font_size)
         self.setFont(font)
 
-import sys
 from PyQt6.QtWidgets import *
 from PyQt6.QtCore import *
 from PyQt6.QtGui import *
@@ -293,7 +290,7 @@ class PatientSuccessModal(QWidget):
         layout.addLayout(icon_layout)
 
         # TITLE
-        title = QLabel("Patient Registered Successfully")
+        title = QLabel("Patient Check-In Successful")
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         title.setStyleSheet("""
             QLabel{
@@ -306,7 +303,7 @@ class PatientSuccessModal(QWidget):
         """)
         layout.addWidget(title)
 
-        subtitle = QLabel("The patient has been registered successfully.")
+        subtitle = QLabel("The patient has successfully checked in.")
         subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
         subtitle.setStyleSheet("""
             QLabel{
@@ -402,7 +399,7 @@ class PatientSuccessModal(QWidget):
 
         layout.addStretch()
 
-        footer = QLabel("Patient information has been recorded successfully.")
+        footer = QLabel("Timestamp and attendance data recorded.")
         footer.setAlignment(Qt.AlignmentFlag.AlignCenter)
         footer.setStyleSheet("""
             QLabel{
