@@ -39,18 +39,21 @@ class OrganizationRepository:
 
         return None
 
-    def update_staff_password(self, organization_id, new_hashed_password):
+
+    def get_by_id(self, organization_id):
+        return self.organizations.find_one({"_id": ObjectId(organization_id)})
+    
+    def update_admin_password(self, organization_id, new_hashed_password):
         try:
             current_time = datetime.now().isoformat()
             result = self.organizations.update_one(
                 {"_id": ObjectId(organization_id)},
-                {"$set": {"staff_password": new_hashed_password,
-                    "updated_at": current_time}}
+                {"$set": {
+                    "password": new_hashed_password,
+                    "updated_at": current_time
+                }}
             )
             return result.matched_count > 0
         except Exception as e:
-            print(f"Error updating staff password: {e}")
+            print(f"Error updating admin password: {e}")
             return False
-
-    def get_by_id(self, organization_id):
-        return self.organizations.find_one({"_id": ObjectId(organization_id)})

@@ -7,8 +7,6 @@ from utils.delete_attendance_dialog import DeleteAttendanceDialog
 from database.organization_repository import OrganizationRepository
 from utils.toast_notification import (ToastNotification,PatientSuccessModal)
 from database.attendance_worker import (AttendanceWorker)
-from utils.role_switch import open_role_switch_popup
-from utils.staff_pwd_change import open_staff_password_dialog
 from datetime import datetime
 from utils.session import Session
 from PyQt6.QtWidgets import QWidget
@@ -905,7 +903,12 @@ class DashboardPage(QWidget):
     
 
     def show_role_popup(self, event):
-        open_role_switch_popup(self, getattr(self, 'current_role', 'Admin'), self.on_role_switched)
+        from utils.role_switch import open_role_switch_popup, open_admin_menu_popup
+        
+        if getattr(self, 'current_role', 'Admin') == "Staff":
+            open_role_switch_popup(self, self.role_changed.emit)
+        else:
+            self.admin_popup_menu = open_admin_menu_popup(self, self.user_label, self.role_changed.emit)
 
     def on_role_switched(self, role):
         self.role_changed.emit(role)

@@ -1,19 +1,16 @@
 import hashlib
-from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton,QHBoxLayout
+from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QHBoxLayout, QWidget, QFrame, QGraphicsDropShadowEffect
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QColor
 from database.organization_repository import OrganizationRepository
 from utils.session import Session
 from utils.toast_notification import ToastNotification
-from utils.staff_pwd_change import open_staff_password_dialog
 
-def open_role_switch_popup(parent, current_role, on_success_callback):
+# --- 1. STAFF TO ADMIN PASSWORD DIALOG ---
+def open_role_switch_popup(parent, on_success_callback):
     dialog = QDialog(parent)
-    dialog.setWindowTitle("Switch Role")
-    
-    if current_role == 'Admin':
-        dialog.setFixedSize(360, 290)
-    else:
-        dialog.setFixedSize(360, 250)
+    dialog.setWindowTitle("Admin Authentication")
+    dialog.setFixedSize(360, 250)
 
     dialog.setStyleSheet("""
         QDialog { background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 14px; }
@@ -28,11 +25,11 @@ def open_role_switch_popup(parent, current_role, on_success_callback):
     layout.setContentsMargins(20, 18, 20, 18)
     layout.setSpacing(14)
 
-    title = QLabel("Switch User Role")
+    title = QLabel("Admin Authentication")
     title.setStyleSheet("font-size:18px; font-weight:700; color:#0F172A;")
     layout.addWidget(title)
 
-    subtitle = QLabel("Enter your Admin or Staff password.")
+    subtitle = QLabel("Enter Admin password to proceed.")
     subtitle.setStyleSheet("font-size:13px; color:#475569;")
     layout.addWidget(subtitle)
 
@@ -45,28 +42,20 @@ def open_role_switch_popup(parent, current_role, on_success_callback):
     pwd_input.setPlaceholderText("Enter Password...")
     pwd_layout.addWidget(pwd_input)
 
-    toggle_btn = QPushButton("Show")
+    toggle_btn = QPushButton("👁️")
     toggle_btn.setFixedSize(60, 42) 
-    
     toggle_btn.setStyleSheet("""
-        QPushButton { 
-            background-color: #F8FAFC; 
-            border: 1px solid #CBD5E1; 
-            border-radius: 10px; 
-            font-size: 13px; 
-            font-weight: 600;
-            color: #475569;
-        }
+        QPushButton { background-color: #F8FAFC; border: 1px solid #CBD5E1; border-radius: 10px; font-size: 13px; font-weight: 600; color: #475569; }
         QPushButton:hover { background-color: #E2E8F0; color: #0F172A; }
     """)
 
     def toggle_visibility():
         if pwd_input.echoMode() == QLineEdit.EchoMode.Password:
             pwd_input.setEchoMode(QLineEdit.EchoMode.Normal)
-            toggle_btn.setText("Hide")
+            toggle_btn.setText("🚫")
         else:
             pwd_input.setEchoMode(QLineEdit.EchoMode.Password)
-            toggle_btn.setText("Show")
+            toggle_btn.setText("👁️")
 
     toggle_btn.clicked.connect(toggle_visibility)
     pwd_layout.addWidget(toggle_btn)  
@@ -77,28 +66,10 @@ def open_role_switch_popup(parent, current_role, on_success_callback):
     error_label.setStyleSheet("color:#DC2626; font-size:12px; font-weight:600;")
     layout.addWidget(error_label)
     
-    btn = QPushButton("Switch Role")
+    btn = QPushButton("Switch to Admin")
     btn.setFixedHeight(42)
-    btn.setAutoDefault(False)
-    btn.setDefault(False)
     btn.setCursor(Qt.CursorShape.PointingHandCursor)
     layout.addWidget(btn)
-
-    if current_role == 'Admin':
-        change_pwd_link = QLabel("Change Staff Password")
-        change_pwd_link.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        change_pwd_link.setCursor(Qt.CursorShape.PointingHandCursor)
-        change_pwd_link.setStyleSheet("""
-            QLabel { color: #5C62D6; font-size: 13px; font-weight: 600; margin-top: 5px; }
-            QLabel:hover { text-decoration: underline; color: #4F46E5; }
-        """)
-        
-        def open_pwd_dialog(ev):
-            dialog.accept() 
-            open_staff_password_dialog(parent) 
-            
-        change_pwd_link.mousePressEvent = open_pwd_dialog
-        layout.addWidget(change_pwd_link)
 
     def verify_password():
         error_label.setText("")
@@ -112,20 +83,101 @@ def open_role_switch_popup(parent, current_role, on_success_callback):
         repository = OrganizationRepository()
         role = repository.verify_role_password(Session.organization_id, hashed_password)
         
-        if role:
-            if role == current_role:
-                error_label.setText(f"You are already logged in as {role}.")
-                return
-
+        if role == "Admin":
             dialog.accept()
-            ToastNotification.show_toast(parent, "success", "Role Switched", f"Switched to {role}", 3000)
-            
-            on_success_callback(role)
+            ToastNotification.show_toast(parent, "success", "Role Switched", "Switched to Admin successfully.", 3000)
+            on_success_callback("Admin")
         else:
-            error_label.setText("Incorrect password. Please try again.")
+            error_label.setText("Incorrect Admin password.")
             pwd_input.clear()
             pwd_input.setFocus()
 
     btn.clicked.connect(verify_password)
     pwd_input.returnPressed.connect(verify_password)
     dialog.exec()
+
+
+# --- 2. ADMIN DROPDOWN MENU (No Password needed to switch back to Staff) ---
+class AdminMenuPopup(QWidget):
+    def __init__(self, parent_widget, anchor_widget, on_switch):
+        super().__init__(parent_widget)
+        self.parent_widget = parent_widget
+        self.anchor_widget = anchor_widget
+        self.on_switch = on_switch
+        self.setWindowFlags(Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint | Qt.WindowType.NoDropShadowWindowHint)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self.setup_ui()
+
+    def setup_ui(self):
+        self.frame = QFrame(self)
+        self.frame.setStyleSheet("""
+            QFrame {
+                background-color: #FFFFFF;
+                border: 1px solid #E2E8F0;
+                border-radius: 12px;
+            }
+        """)
+        
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(20)
+        shadow.setColor(QColor(0, 0, 0, 40))
+        shadow.setOffset(0, 5)
+        self.frame.setGraphicsEffect(shadow)
+
+        layout = QVBoxLayout(self.frame)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(4)
+
+        btn_style = """
+            QPushButton {
+                text-align: left;
+                padding: 12px 15px;
+                background: transparent;
+                border: none;
+                font-size: 14px;
+                font-weight: 600;
+                color: #1E293B;
+                border-radius: 8px;
+            }
+            QPushButton:hover {
+                background-color: #F1F5F9;
+                color: #4F46E5;
+            }
+        """
+
+        switch_btn = QPushButton("🔄  Switch to Staff")
+        switch_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        switch_btn.setStyleSheet(btn_style)
+        
+        pwd_btn = QPushButton("🔑  Change Password")
+        pwd_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        pwd_btn.setStyleSheet(btn_style)
+
+        switch_btn.clicked.connect(self.do_switch)
+        pwd_btn.clicked.connect(self.open_pwd_dialog)
+
+        layout.addWidget(switch_btn)
+        layout.addWidget(pwd_btn)
+
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(15, 15, 15, 15)
+        main_layout.addWidget(self.frame)
+
+    def do_switch(self):
+        self.close()
+        ToastNotification.show_toast(self.parent_widget, "success", "Role Switched", "Switched to Staff successfully.", 3000)
+        self.on_switch("Staff")
+
+    def open_pwd_dialog(self):
+        self.close()
+        from utils.admin_pwd_change import open_admin_password_dialog
+        open_admin_password_dialog(self.parent_widget)
+
+def open_admin_menu_popup(parent, anchor, on_switch):
+    popup = AdminMenuPopup(parent, anchor, on_switch)
+    popup.adjustSize()
+    # યુઝર લેબલની એક્ઝેક્ટ નીચે જમણી બાજુ ખોલવા માટે
+    pos = anchor.mapToGlobal(anchor.rect().bottomRight())
+    popup.move(pos.x() - popup.width() + 15, pos.y() - 5)
+    popup.show()
+    return popup

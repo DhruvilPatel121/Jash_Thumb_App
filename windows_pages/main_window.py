@@ -9,7 +9,13 @@ class MainWindow(QMainWindow):
         super().__init__()
         
         self.setWindowTitle("Fingerprint Attendance System")
-        self.setMinimumSize(1600, 900)
+        self.setMinimumSize(1024, 720) 
+        
+        # 2. 1366x768 resolution mate specifically resize karo
+        self.resize(1366, 768)
+        
+        # 3. Jo tamare exact window size test karvi hoy toh showMaximized() ne comment kari shako cho. 
+        # Full screen test karvu hoy toh aane emnaj rakhva do.
         self.showMaximized()
         self.setStyleSheet("background-color: #F8FAFC;")
         

@@ -452,15 +452,16 @@ class PatientPage(QWidget):
         header = self.patient_table.horizontalHeader()
         header.setFixedHeight(60)
 
-        self.patient_table.setColumnWidth(0, 60)
-        self.patient_table.setColumnWidth(2, 120)
-        self.patient_table.setColumnWidth(3, 80)  
-        self.patient_table.setColumnWidth(4, 80) 
-        self.patient_table.setColumnWidth(5, 120) 
-        self.patient_table.setColumnWidth(7, 120)  
-        self.patient_table.setColumnWidth(8, 120)  
+        self.patient_table.setColumnWidth(0, 70)  # Number
+        self.patient_table.setColumnWidth(2, 120) # Mobile
+        self.patient_table.setColumnWidth(3, 80)  # Age
+        self.patient_table.setColumnWidth(4, 80)  # Gender
+        self.patient_table.setColumnWidth(5, 120) # Department
+        self.patient_table.setColumnWidth(7, 120) # Created Date
+        self.patient_table.setColumnWidth(8, 120) # Actions
+        
         header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)  
-        header.setSectionResizeMode(6, QHeaderView.ResizeMode.Stretch) 
+        header.setSectionResizeMode(6, QHeaderView.ResizeMode.Stretch)
 
         self.update_dialog = UpdatePatientDialog(self.content_area)
         self.update_dialog.patient_updated.connect(self.load_patients)
@@ -677,7 +678,7 @@ class PatientPage(QWidget):
             self.calendar_popup.show()
             
             self.active_dialog = self.calendar_popup 
-            
+
     def on_calendar_date_selected(self, date):
         formatted_date = date.toString('dd MMM yyyy')
         self.filter_date_btn.setText(f" {formatted_date}")
@@ -710,8 +711,12 @@ class PatientPage(QWidget):
         self.active_dialog = self.history_dialog 
 
     def show_role_popup(self, event):
-        from utils.role_switch import open_role_switch_popup
-        open_role_switch_popup(self, getattr(self, 'current_role', 'Admin'), self.role_changed.emit)
+        from utils.role_switch import open_role_switch_popup, open_admin_menu_popup
+        
+        if getattr(self, 'current_role', 'Admin') == "Staff":
+            open_role_switch_popup(self, self.role_changed.emit)
+        else:
+            self.admin_popup_menu = open_admin_menu_popup(self, self.user_label, self.role_changed.emit)
 
     def load_patient_counts(self):
         organization_id = Session.organization_id

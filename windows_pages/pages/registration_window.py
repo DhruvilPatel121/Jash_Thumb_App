@@ -211,17 +211,17 @@ class RegistrationPage(QWidget):
             
         #input field
         self.name_input = QLineEdit()
-        self.email_input = QLineEdit()
         self.mobile_input = QLineEdit()
         self.age_input = QLineEdit()
         self.name_input.setPlaceholderText("   Enter full name")
-        self.email_input.setPlaceholderText("   Enter email address")
         self.mobile_input.setPlaceholderText("   Enter phone number")
         self.age_input.setPlaceholderText("   Enter Age")
         number_validator = QRegularExpressionValidator(QRegularExpression("^[0-9]*$"))
         self.mobile_input.setMaxLength(10)
-        self.age_input.setMaxLength(3)
-        self.age_input.setValidator(number_validator)
+        self.age_input.setMaxLength(6)
+        age_regex = QRegularExpression(r"^[0-9]{1,3}(\.(1[0-1]?|[2-9])?)?$")
+        age_validator = QRegularExpressionValidator(age_regex)
+        self.age_input.setValidator(age_validator)
         self.mobile_input.setValidator(number_validator)
         self.neuro_radio = QRadioButton("Neuro")
         self.ortho_radio = QRadioButton("Ortho")
@@ -298,7 +298,6 @@ class RegistrationPage(QWidget):
 
         for widget in [
             self.name_input,
-            self.email_input,
             self.mobile_input,
             self.age_input,
             self.problem_input
@@ -311,7 +310,6 @@ class RegistrationPage(QWidget):
 
         #add all the field in layout
         self.form_layout.addRow(self.name_label, self.name_input)
-        self.form_layout.addRow(self.email_label, self.email_input)
         self.form_layout.addRow(self.mobile_label, self.mobile_input)
         self.form_layout.addRow(self.age_label, self.age_input)
         
@@ -757,7 +755,6 @@ class RegistrationPage(QWidget):
             return
         organization_id = (Session.organization_id)
         name = self.name_input.text().strip()
-        email = self.email_input.text().strip()
         mobile = self.mobile_input.text().strip()
         age = self.age_input.text().strip()
         gender = ("Male" if self.male_radio.isChecked() else "Female")
@@ -783,7 +780,7 @@ class RegistrationPage(QWidget):
             patient_id = self.patient_repository.create_patient(
                 organization_id,
                 name,
-                email,
+                "",
                 mobile,
                 age,
                 gender,
@@ -826,7 +823,6 @@ class RegistrationPage(QWidget):
     def clear_registration_form(self):
 
         self.name_input.clear()
-        self.email_input.clear()
         self.mobile_input.clear()
         self.age_input.clear()
         self.problem_input.clear()
@@ -903,5 +899,9 @@ class RegistrationPage(QWidget):
         """)
 
     def show_role_popup(self, event):
-        from utils.role_switch import open_role_switch_popup
-        open_role_switch_popup(self, getattr(self, 'current_role', 'Admin'), self.role_changed.emit)
+        from utils.role_switch import open_role_switch_popup, open_admin_menu_popup
+        
+        if getattr(self, 'current_role', 'Admin') == "Staff":
+            open_role_switch_popup(self, self.role_changed.emit)
+        else:
+            self.admin_popup_menu = open_admin_menu_popup(self, self.user_label, self.role_changed.emit)

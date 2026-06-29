@@ -87,6 +87,8 @@ class AppCorePage(QWidget):
             self.dashboard_page.search_input.hide()
             self.dashboard_page.filter_date_btn.hide()
             self.dashboard_page.reset_btn.hide()
+            self.dashboard_page.neuro_table.setColumnHidden(0, True)
+            self.dashboard_page.cardio_table.setColumnHidden(0, True)
             
             if self.content_stack.currentIndex() == 2:
                 self.go_to_dashboard()
