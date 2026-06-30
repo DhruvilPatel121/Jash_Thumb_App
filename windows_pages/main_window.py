@@ -1,5 +1,6 @@
 import sys
 import os
+import logging
 import json
 from PyQt6.QtWidgets import QMainWindow, QStackedWidget
 from utils.session import Session
@@ -14,8 +15,6 @@ class MainWindow(QMainWindow):
         # 2. 1366x768 resolution mate specifically resize karo
         self.resize(1600, 900)
         
-        # 3. Jo tamare exact window size test karvi hoy toh showMaximized() ne comment kari shako cho. 
-        # Full screen test karvu hoy toh aane emnaj rakhva do.
         self.showMaximized()
         self.setStyleSheet("background-color: #F8FAFC;")
         
@@ -30,14 +29,13 @@ class MainWindow(QMainWindow):
         self.initialize_pages()        # 2. Skip login page
         
     def initialize_auto_session(self):
-        """Loads organization configurations dynamically on application startup."""
+        """Loads organization configurations dynamically from AppData."""
         try:
-            if getattr(sys, 'frozen', False):
-                application_path = os.path.dirname(sys.executable)
-            else:
-                application_path = os.path.dirname(__file__)
-
-            config_path = os.path.join(application_path, 'config.json')
+            import os
+            import json
+            
+            app_data_dir = os.path.join(os.environ["LOCALAPPDATA"], "JashThumbAttendance")
+            config_path = os.path.join(app_data_dir, 'config.json')
 
             if not os.path.exists(config_path):
                 config_path = "config.json"
@@ -48,11 +46,12 @@ class MainWindow(QMainWindow):
             org_id = config_data.get("ORGANIZATION_ID")
             org_name = config_data.get("ORGANIZATION_NAME", "Staff")
             
-            # Start the session automatically[cite: 9]
+            from utils.session import Session
+            # Start the session automatically
             Session.login(org_id, org_name)
             
         except Exception as e:
-            print(f"Configuration Error: Could not load organization variables. {e}")
+            logging.error(f"Configuration Error: Could not load organization variables. {e}", exc_info=True)
 
     def initialize_pages(self):
         # Directly jump to the core app, skipping login[cite: 5]

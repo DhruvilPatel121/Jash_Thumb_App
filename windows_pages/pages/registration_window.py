@@ -806,8 +806,8 @@ class RegistrationPage(QWidget):
         elif self.ortho_radio.isChecked():
             department = "Ortho"
         problem = self.problem_input.text().strip()
-        payment_per_day = int(self.payment_input.text().strip())
-        paid_days = int(self.total_days_input.text().strip())
+        payment_per_day = int(self.payment_input.text().strip() or 0)
+        paid_days = int(self.total_days_input.text().strip() or 0)
 
         try:
             existing_patient =self.is_fingerprint_already_registered()

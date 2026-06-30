@@ -1,4 +1,5 @@
 from bson import ObjectId
+from datetime import datetime 
 from utils.session import Session
 from database.mongodb_connection import MongoDBConnection
 from database.atlas_connection import AtlasConnection
@@ -32,11 +33,25 @@ class SyncManager:
         if not local_org or not atlas_org:
             return
 
-        atlas_time = atlas_org.get("updated_at", "")
-        local_time = local_org.get("updated_at", "")
+        atlas_time = atlas_org.get("updated_at")
+        local_time = local_org.get("updated_at")
+
+        def get_valid_time(t):
+            if isinstance(t, datetime):
+                return t
+            if isinstance(t, str) and t:
+                try:
+                    return datetime.fromisoformat(t)
+                except ValueError:
+                    pass
+            return datetime.min 
+
+        atlas_time_dt = get_valid_time(atlas_time)
+        local_time_dt = get_valid_time(local_time)
+        # --- TIME FIX END ---
 
         # 1. Jo Atlas ma data latest hoy, to Local (Compass) update karo
-        if atlas_time > local_time:
+        if atlas_time_dt > local_time_dt:
             self.local_db.organizations.update_one(
                 {"_id": organization_id},
                 {
@@ -45,14 +60,14 @@ class SyncManager:
                         "password": atlas_org.get("password"),
                         "staff_password": atlas_org.get("staff_password"),
                         "is_locked": atlas_org.get("is_locked"),
-                        "updated_at": atlas_time
+                        "updated_at": atlas_time 
                     }
                 }
             )
             logging.info(f"Organization Synced: Atlas -> Local for {Session.organization_username}")
 
         # 2. Jo Local (Compass) ma data latest hoy, to Atlas update karo
-        elif local_time > atlas_time:
+        elif local_time_dt > atlas_time_dt:
             self.atlas_db.organizations.update_one(
                 {"_id": organization_id},
                 {
@@ -61,13 +76,12 @@ class SyncManager:
                         "password": local_org.get("password"),
                         "staff_password": local_org.get("staff_password"),
                         "is_locked": local_org.get("is_locked"),
-                        "updated_at": local_time
+                        "updated_at": local_time 
                     }
                 }
             )
             logging.info(f"Organization Synced: Local -> Atlas for {Session.organization_username}")
             
-        # Jo banne no time same hase, to aagal kai nai thay (return thai jase).
 
     def process_outbox(self):
         pending_tasks = list(self.local_db.offline_outbox.find().sort("timestamp", 1))

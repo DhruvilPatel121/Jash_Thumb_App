@@ -2,11 +2,8 @@ import sys
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import QTimer
 from windows_pages.main_window import MainWindow
-import logging
 import traceback
 from PyQt6.QtGui import QIcon
-import os
-
 import os
 import logging
 
