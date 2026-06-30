@@ -8,6 +8,7 @@ from database.organization_repository import OrganizationRepository
 from utils.toast_notification import (ToastNotification,PatientSuccessModal)
 from database.attendance_worker import (AttendanceWorker)
 from datetime import datetime
+from utils.manual_attendance_dialog import ManualAttendanceDialog
 from utils.session import Session
 from PyQt6.QtWidgets import QWidget
 from PyQt6.QtGui import QDesktopServices
@@ -241,29 +242,20 @@ class DashboardPage(QWidget):
         self.user_label.mousePressEvent = self.show_role_popup
         self.header_layout.addSpacing(80)
         self.header_layout.addWidget(self.page_title)
-
         self.header_layout.addSpacing(25)
-
-        # Search Box - Expands automatically
         self.header_layout.addWidget(self.search_input, 1)
-
         # Buttons
         self.header_layout.addWidget(self.filter_date_btn)
         self.header_layout.addWidget(self.reset_btn)
         self.header_layout.addWidget(self.scanner_btn)
-
-        # Push Date/Time/User to the right
         self.header_layout.addStretch()
-
         # Right Side
         self.header_layout.addWidget(self.header_date_label)
         self.header_layout.addSpacing(15)
         self.header_layout.addWidget(self.time_label)
         self.header_layout.addSpacing(15)
         self.header_layout.addWidget(self.user_label)
-        
         self.header_layout.addStretch() 
-        
         self.header_layout.addWidget(self.header_date_label)
         self.header_layout.addSpacing(10) 
         self.header_layout.addWidget(self.time_label)
@@ -375,7 +367,34 @@ class DashboardPage(QWidget):
                 }
             """)
         self.attendance_title.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        self.content_layout.addWidget(self.attendance_title)
+
+        self.manual_attn_btn = QPushButton("Manual Entry")
+        self.manual_attn_btn.setFixedHeight(35) 
+        self.manual_attn_btn.setMinimumWidth(130)
+        self.manual_attn_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.manual_attn_btn.setStyleSheet("""
+        QPushButton { 
+            background-color: #5C62D6; 
+            color: white; 
+            border: none; 
+            border-radius: 8px; 
+            font-size: 13px; 
+            font-weight: bold; 
+            min-width: 120px;  /* Adjust this so both buttons have the same width */
+            min-height: 40px;  /* Adjust this so both buttons have the same height */
+        }
+        QPushButton:hover { 
+            background-color: #4C51BF; 
+        }
+        """)
+        self.manual_attn_btn.clicked.connect(self.open_manual_attendance_dialog)
+
+        attendance_header_layout = QHBoxLayout()
+        attendance_header_layout.addWidget(self.attendance_title)
+        attendance_header_layout.addStretch() 
+        attendance_header_layout.addWidget(self.manual_attn_btn)
+
+        self.content_layout.addLayout(attendance_header_layout)
 
         self.ortho_frame = QFrame()
         self.ortho_frame.setObjectName("orthoFrame")
@@ -410,11 +429,8 @@ class DashboardPage(QWidget):
         ortho_layout.addWidget(self.cardio_table)
         self.content_layout.addWidget(self.ortho_frame)
         self.content_layout.addSpacing(20)
-
-
-        # ---------------------------------------------------------
+        
         # 2. NEURO DEPARTMENT FRAME
-        # ---------------------------------------------------------
         self.neuro_frame = QFrame()
         self.neuro_frame.setObjectName("neuroFrame")
         self.neuro_frame.setStyleSheet("""
@@ -777,7 +793,7 @@ class DashboardPage(QWidget):
             delete_btn = QPushButton("🗑️")
             delete_btn.setFixedSize(35, 35)
             
-            if allow_edit and not is_completed:
+            if (allow_edit or self.selected_date != today) and not is_completed:
                 delete_btn.setCursor(Qt.CursorShape.PointingHandCursor)
                 delete_btn.setStyleSheet("""
                 QPushButton{
@@ -967,3 +983,8 @@ class DashboardPage(QWidget):
 
     def on_role_switched(self, role):
         self.role_changed.emit(role)
+
+
+    def open_manual_attendance_dialog(self):
+        dialog = ManualAttendanceDialog(self, self.attendance_worker)
+        dialog.exec()
