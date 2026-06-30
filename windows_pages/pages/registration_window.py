@@ -456,6 +456,7 @@ class RegistrationPage(QWidget):
         self.clear_scan_btn = QPushButton("↻ Clear")
         self.clear_scan_btn.setFixedHeight(50)
         self.clear_scan_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.clear_scan_btn.clicked.connect(self.clear_fingerprint_scan)
         self.clear_scan_btn.setStyleSheet("""
         QPushButton{
             background-color: #F8F9FA;
@@ -476,11 +477,24 @@ class RegistrationPage(QWidget):
             padding-left: 3px;
         }
         """)
+       # Add Dummy Button next to Capture and Clear
+        self.dummy_scan_btn = QPushButton(" Dummy Finger")
+        self.dummy_scan_btn.setFixedHeight(50)
+        self.dummy_scan_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.dummy_scan_btn.setStyleSheet("""
+        QPushButton{
+            background-color: #F8FAFC; color: #475569;
+            border: 1px solid #CBD5E1; border-radius: 8px;
+            font-size: 15px; font-weight: bold;
+        }
+        QPushButton:hover{ background-color: #E2E8F0; color: #1E293B; }
+        """)
+        self.dummy_scan_btn.clicked.connect(self.apply_dummy_fingerprint)
 
-        self.clear_scan_btn.clicked.connect(self.clear_fingerprint_scan)
         capture_button_layout = QHBoxLayout()
-        capture_button_layout.addWidget(self.capture_btn,3)
-        capture_button_layout.addWidget(self.clear_scan_btn,1)
+        capture_button_layout.addWidget(self.capture_btn, 3)
+        capture_button_layout.addWidget(self.clear_scan_btn, 1)
+        capture_button_layout.addWidget(self.dummy_scan_btn, 1) # Added here
         self.fingerprint_layout.addLayout(capture_button_layout)
         self.fingerprint_layout.addStretch()
 
@@ -581,7 +595,10 @@ class RegistrationPage(QWidget):
         self.footer_layout.addWidget(self.footer_label)
         self.content_layout.addLayout(self.footer_layout)
 
+        # અહીયા 2 નવા ફિલ્ડ add કર્યા છે
         self.age_input.installEventFilter(self)
+        self.payment_input.installEventFilter(self)      # NAVU ADD KARYU
+        self.total_days_input.installEventFilter(self)   # NAVU ADD KARYU
         self.male_radio.installEventFilter(self)
         self.female_radio.installEventFilter(self)
         self.neuro_radio.installEventFilter(self)
@@ -591,6 +608,12 @@ class RegistrationPage(QWidget):
         if event.type() == QEvent.Type.KeyPress:
             if event.key() == Qt.Key.Key_Tab:
                 if obj == self.age_input:
+                    self.payment_input.setFocus()
+                    return True
+                elif obj == self.payment_input:
+                    self.total_days_input.setFocus()
+                    return True
+                elif obj == self.total_days_input:
                     self.gender_sequence_active = True
                     self.male_radio.setFocus()
                     return True
@@ -599,15 +622,12 @@ class RegistrationPage(QWidget):
                     if obj == self.male_radio:
                         self.female_radio.setFocus()
                         return True
-
                     elif obj == self.female_radio:
                         self.neuro_radio.setFocus()
                         return True
-
                     elif obj == self.neuro_radio:
                         self.ortho_radio.setFocus()
                         return True
-
                     elif obj == self.ortho_radio:
                         self.gender_sequence_active = False
                         self.problem_input.setFocus()
@@ -629,14 +649,14 @@ class RegistrationPage(QWidget):
             )
             return False 
             
-        # if not self.template_bytes:
-        #     ToastNotification.show_toast(
-        #         self,
-        #         "warning",
-        #         "Fingerprint Required",
-        #         "Please scan fingerprint first."
-        #     )
-        #     return False
+        if not self.template_bytes:
+            ToastNotification.show_toast(
+                self,
+                "warning",
+                "Fingerprint Required",
+                "Please scan fingerprint first."
+            )
+            return False
         return True
             
     
@@ -729,6 +749,16 @@ class RegistrationPage(QWidget):
         self.capture_status.setText("Ready to save.")
         self.scanner.close_device()
         self.scanner.terminate()
+
+    def apply_dummy_fingerprint(self):
+        self.template_bytes = b"MANUAL_BYPASS_DUMMY_TEMPLATE_XYZ"
+        self.device_status.setText("Device Status : Bypassed ⚠️")
+        self.update_scan_status(
+            "assets/Fingerprint biometric success.gif", # Keep the success visual
+            "Dummy Finger Applied",
+            "#F59E0B" 
+        )
+        self.capture_status.setText("Ready to save manually.")
 
     def is_fingerprint_already_registered(self):
         try:
@@ -859,6 +889,8 @@ class RegistrationPage(QWidget):
 
     def clear_fingerprint_scan(self):
         try:
+            self.template_bytes = None
+            print("")
             self.scanner.close_device()
             self.scanner.terminate()
         except:
