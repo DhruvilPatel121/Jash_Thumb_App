@@ -174,3 +174,66 @@ class AttendanceWorker(QThread):
 
                 continue
         self.close_scanner()
+
+    def process_manual_attendance(self, patient):
+        """Processes attendance directly from the UI without scanner verification."""
+        try:
+            self.processing = True
+            
+            self.organization_id = Session.organization_id 
+            # -----------------------------------------------------
+
+            current_time = datetime.now().strftime("%H:%M:%S")
+            today_date = datetime.now().strftime("%Y-%m-%d")
+            
+            attendance = self.attendance_repository.is_attendance_taken_today(
+                self.organization_id, str(patient["_id"]), today_date
+            )
+            
+            if attendance:
+                self.already_taken.emit(patient["name"])
+                return
+
+            department = patient.get("department", "").strip()
+            if not department or department.lower() not in ["ortho", "neuro"]:
+                department = "Ortho"
+            patient["department"] = department
+
+            attendance_count = self.attendance_repository.get_patient_attendance_count(
+                self.organization_id, str(patient["_id"])
+            )
+            used_days = attendance_count + 1
+            payment_per_day = patient.get("payment_per_day", 0)
+            paid_days = patient.get("paid_days", 0)
+
+            self.attendance_repository.mark_attendance(
+                self.organization_id,
+                str(patient["_id"]),
+                patient.get("token_no", ""),
+                patient.get("name", ""),
+                patient.get("mobile", ""),
+                patient.get("gender", ""),
+                today_date,
+                current_time,
+                department,
+                patient.get("age", ""),
+                patient.get("problem", ""),
+                payment_per_day,
+                paid_days,
+                used_days
+            )
+            
+            patient["attendance_time"] = current_time
+            token_no = self.attendance_repository.get_department_attendance_count(
+                self.organization_id, today_date, department
+            )
+            
+            patient["token_no"] = token_no
+            patient["display_department"] = department
+
+            self.attendance_marked.emit(patient)
+
+        except Exception as error:
+            logging.error(f"Manual Attendance Error: {error}", exc_info=True)
+        finally:
+            self.processing = False
