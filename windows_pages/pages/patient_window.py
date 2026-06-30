@@ -126,6 +126,7 @@ class PatientPage(QWidget):
 
         cards = [
             ("Today's Visit", "0", "#FFFFFF", "#16A34A"),
+            ("Today's Patient", "0", "#FFFFFF", "#F59E0B"),
             ("Total Patient", "0", "#FFFFFF", "#5C62D6")
         ]
 
@@ -178,6 +179,9 @@ class PatientPage(QWidget):
             if card_title == "Today's Visit":
                 self.visited_today_count = count
                 self.visit_title = title
+            elif card_title == "Today's Patient":
+                self.registered_today_count = count
+                self.registered_title = title
             elif card_title == "Total Patient":
                 self.total_patient_count = count
 
@@ -477,10 +481,8 @@ class PatientPage(QWidget):
         # Footer
         self.footer_layout = QHBoxLayout()
         self.footer_layout.setContentsMargins(0, 10, 0, 0)
-        
         self.footer_label = QLabel("Handcraft By Shivvilon Solution")
         self.footer_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        
         self.footer_label.setCursor(Qt.CursorShape.PointingHandCursor)
 
         self.footer_label.setStyleSheet("""
@@ -666,6 +668,7 @@ class PatientPage(QWidget):
         self.filter_date_btn.setText(" Filter Date")
         self.filter_status_label.setText("Showing: All Patients") 
         self.visit_title.setText("Today's Visit")
+        self.registered_title.setText("Today's Patient")
         self.load_patients()
         self.load_patient_counts()
 
@@ -684,21 +687,7 @@ class PatientPage(QWidget):
             self.calendar_popup.show()
             
             self.active_dialog = self.calendar_popup 
-
-    def on_calendar_date_selected(self, date):
-        formatted_date = date.toString('dd MMM yyyy')
-        self.filter_date_btn.setText(f" {formatted_date}")
-        self.filter_status_label.setText(f"Showing: Patients from {formatted_date}")
-        self.calendar_popup.close()
-        self.selected_date = date.toString("yyyy-MM-dd")
-        today = datetime.now().strftime("%Y-%m-%d")  
-        if self.selected_date == today:
-            self.visit_title.setText("Today's Visit")
-        else:
-            self.visit_title.setText(formatted_date + " Visit")
-        self.load_patients()
-        self.load_patient_counts()
-            
+     
     def on_date_changed(self, date):
         self.selected_date = date.toString("yyyy-MM-dd")
         self.load_patients()
@@ -724,26 +713,37 @@ class PatientPage(QWidget):
         else:
             self.admin_popup_menu = open_admin_menu_popup(self, self.user_label, self.role_changed.emit)
 
+    def on_calendar_date_selected(self, date):
+        formatted_date = date.toString('dd MMM yyyy')
+        self.filter_date_btn.setText(f" {formatted_date}")
+        self.filter_status_label.setText(f"Showing: Patients from {formatted_date}")
+        self.calendar_popup.close()
+        self.selected_date = date.toString("yyyy-MM-dd")
+        
+        today = datetime.now().strftime("%Y-%m-%d")  
+        if self.selected_date == today:
+            self.visit_title.setText("Todays Visit")
+            self.registered_title.setText("Today's Patient")
+        else:
+            self.visit_title.setText(formatted_date + " Visit")
+            self.registered_title.setText(formatted_date + " Patient")
+            
+        self.load_patients()
+        self.load_patient_counts()
+
     def load_patient_counts(self):
         organization_id = Session.organization_id
-        attendance_date = (
-        self.selected_date
-            if self.selected_date
-            else datetime.now().strftime("%Y-%m-%d")
-        )
+        attendance_date = self.selected_date if self.selected_date else datetime.now().strftime("%Y-%m-%d")
 
-        total_patients = self.patient_repository.count_patients(
-            organization_id
-        )
-
-        today_visit = self.attendance_repository.count_today_attendance(
-            organization_id,
-            attendance_date
-        )
+        total_patients = self.patient_repository.count_patients(organization_id)
+        today_visit = self.attendance_repository.count_today_attendance(organization_id, attendance_date)
+        patients_on_date = self.patient_repository.get_patient_data(organization_id, selected_date=attendance_date)
+        today_registered = len(patients_on_date)
 
         self.total_patient_count.setText(str(total_patients))
         self.visited_today_count.setText(str(today_visit))
-
+        self.registered_today_count.setText(str(today_registered))
+       
     def close_active_dialog(self):
         if self.active_dialog and self.active_dialog.isVisible():
             self.active_dialog.hide()
