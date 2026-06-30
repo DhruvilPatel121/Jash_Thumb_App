@@ -91,15 +91,15 @@ class AttendanceHistoryDialog(QFrame):
             }
             QComboBox QAbstractItemView {
                 background-color: #FFFFFF;
-                color: #1E293B; /* અહી કલર એડ કર્યો છે જેથી લિસ્ટના નામ દેખાય */
+                color: #1E293B; 
                 border: 1px solid #CBD5E1;
                 selection-background-color: #EEF2FF;
                 selection-color: #4F46E5;
                 outline: none;
             }
             QComboBox QAbstractItemView::item {
-                color: #1E293B; /* લિસ્ટની દરેક આઈટમનો કલર ડાર્ક કર્યો */
-                min-height: 35px; /* લિસ્ટમાં આઇટમ્સ વચ્ચે થોડી જગ્યા વધારી */
+                color: #1E293B; 
+                min-height: 35px; 
             }
         """
         self.month_combo = QComboBox()

@@ -431,30 +431,35 @@ class RegistrationPage(QWidget):
         self.fingerprint_layout.addWidget(self.capture_status)
         self.capture_btn = QPushButton("Start Scanner")
         self.capture_btn.setFixedHeight(50)
+        self.capture_btn.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Fixed
+        )
         self.capture_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.capture_btn.setDefault(True)
         self.capture_btn.setStyleSheet("""
             QPushButton{
-                background-color: #5C62D6; /* Solid Teal matching image */
+                background-color: #5C62D6; 
                 color: white;
                 border: none;
                 border-radius: 8px;
                 font-size: 15px;
                 font-weight: bold;
             }
-
             QPushButton:hover{
-            background-color: #4C51BF;
+                background-color: #4C51BF;
             }
             QPushButton:pressed{
                 border: 1px solid #1D4ED8;
                 padding-top: 3px;
                 padding-left: 3px;
             }
-            """)
+        """)
         self.capture_btn.clicked.connect(self.capture_fingerprint)
+
         self.clear_scan_btn = QPushButton("↻ Clear")
         self.clear_scan_btn.setFixedHeight(50)
+        self.clear_scan_btn.setMinimumWidth(100) 
         self.clear_scan_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.clear_scan_btn.clicked.connect(self.clear_fingerprint_scan)
         self.clear_scan_btn.setStyleSheet("""
@@ -466,7 +471,6 @@ class RegistrationPage(QWidget):
             font-size: 15px;
             font-weight: bold;
         }
-
         QPushButton:hover{
             background-color: #F1F5F9;
             color: #334155;
@@ -477,24 +481,39 @@ class RegistrationPage(QWidget):
             padding-left: 3px;
         }
         """)
-       # Add Dummy Button next to Capture and Clear
+        
+        # Add Dummy Button next to Capture and Clear
         self.dummy_scan_btn = QPushButton(" Dummy Finger")
         self.dummy_scan_btn.setFixedHeight(50)
+        self.dummy_scan_btn.setMinimumWidth(140) 
         self.dummy_scan_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.dummy_scan_btn.setStyleSheet("""
         QPushButton{
-            background-color: #F8FAFC; color: #475569;
-            border: 1px solid #CBD5E1; border-radius: 8px;
-            font-size: 15px; font-weight: bold;
+            background-color: #F8FAFC; 
+            color: #475569;
+            border: 1px solid #CBD5E1; 
+            border-radius: 8px;
+            font-size: 15px; 
+            font-weight: bold;
         }
-        QPushButton:hover{ background-color: #E2E8F0; color: #1E293B; }
+        QPushButton:hover{ 
+            background-color: #E2E8F0; 
+            color: #1E293B; 
+        }
+        QPushButton:pressed{
+            border: 1px solid #94A3B8;
+            padding-top: 3px;
+            padding-left: 3px;
+        }
         """)
         self.dummy_scan_btn.clicked.connect(self.apply_dummy_fingerprint)
 
         capture_button_layout = QHBoxLayout()
-        capture_button_layout.addWidget(self.capture_btn, 3)
-        capture_button_layout.addWidget(self.clear_scan_btn, 1)
-        capture_button_layout.addWidget(self.dummy_scan_btn, 1) # Added here
+        capture_button_layout.setSpacing(12) 
+        capture_button_layout.addWidget(self.capture_btn)
+        capture_button_layout.addWidget(self.clear_scan_btn)
+        capture_button_layout.addWidget(self.dummy_scan_btn)
+        
         self.fingerprint_layout.addLayout(capture_button_layout)
         self.fingerprint_layout.addStretch()
 

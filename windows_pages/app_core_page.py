@@ -35,6 +35,11 @@ class AppCorePage(QWidget):
         self.sidebar = Sidebar(self)
         self.sidebar.hide() 
 
+        self.overlay_btn = QPushButton(self)
+        self.overlay_btn.setStyleSheet("background-color: rgba(0, 0, 0, 80); border: none;") 
+        self.overlay_btn.hide()
+        self.overlay_btn.clicked.connect(self.close_sidebar_from_overlay)
+
         self.toggle_btn = QPushButton("☰", self)
         self.toggle_btn.setFixedSize(45, 45)
         self.toggle_btn.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -107,23 +112,34 @@ class AppCorePage(QWidget):
         super().resizeEvent(event)
         self.toggle_btn.move(20, 20)
         
+        self.overlay_btn.setGeometry(0, 0, self.width(), self.height())
+        
         if self.sidebar_open:
             self.sidebar.setGeometry(0, 0, 240, self.height())
         else:
             self.sidebar.setGeometry(-240, 0, 240, self.height())
 
+    def close_sidebar_from_overlay(self):
+        if self.sidebar_open:
+            self.toggle_sidebar()
+
     def toggle_sidebar(self):
         self.sidebar.show()
-        self.sidebar.raise_()
-        self.toggle_btn.raise_()
 
         start_rect = self.sidebar.geometry()
         if self.sidebar_open:
             end_rect = QRect(-240, 0, 240, self.height())
             self.sidebar_open = False
+            self.overlay_btn.hide()
         else:
             end_rect = QRect(0, 0, 240, self.height())
             self.sidebar_open = True
+            self.overlay_btn.setGeometry(0, 0, self.width(), self.height())
+            self.overlay_btn.show()
+
+        self.overlay_btn.raise_()
+        self.sidebar.raise_()
+        self.toggle_btn.raise_()
 
         self.animation = QPropertyAnimation(self.sidebar, b"geometry")
         self.animation.setDuration(250)
@@ -137,7 +153,6 @@ class AppCorePage(QWidget):
         self.animation.start()
 
     def close_all_page_popups(self):
-
         for i in range(self.content_stack.count()):
             page = self.content_stack.widget(i)
             if hasattr(page, "close_all_popups"):
@@ -179,12 +194,6 @@ class AppCorePage(QWidget):
         self.sidebar_open = False
         self.sidebar.setGeometry(-240, 0, 240, self.height())
         self.sidebar.hide()
+        self.overlay_btn.hide() 
         self.go_to_dashboard()
 
-
-    def mousePressEvent(self, event):
-        if self.sidebar_open:
-            sidebar_rect = self.sidebar.geometry()
-            if not sidebar_rect.contains(event.pos()):
-                self.toggle_sidebar()
-        super().mousePressEvent(event)
