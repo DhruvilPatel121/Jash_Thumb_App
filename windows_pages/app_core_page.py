@@ -180,3 +180,11 @@ class AppCorePage(QWidget):
         self.sidebar.setGeometry(-240, 0, 240, self.height())
         self.sidebar.hide()
         self.go_to_dashboard()
+
+
+    def mousePressEvent(self, event):
+        if self.sidebar_open:
+            sidebar_rect = self.sidebar.geometry()
+            if not sidebar_rect.contains(event.pos()):
+                self.toggle_sidebar()
+        super().mousePressEvent(event)
