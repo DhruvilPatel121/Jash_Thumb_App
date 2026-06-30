@@ -241,17 +241,25 @@ class UpdatePatientDialog(QFrame):
         self.save_btn.clicked.connect(self.save_updated_patient)
 
         # Event Filters for Custom Tab Order
+        # અહીયા 2 નવા ફિલ્ડ add કર્યા છે
         self.age_input.installEventFilter(self)
+        self.payment_input.installEventFilter(self)        # NAVU ADD KARYU
+        self.add_paid_days_input.installEventFilter(self)  # NAVU ADD KARYU
         self.male_radio.installEventFilter(self)
         self.female_radio.installEventFilter(self)
         self.dep1_radio.installEventFilter(self)
         self.dep2_radio.installEventFilter(self)
 
-
     def eventFilter(self, obj, event):
         if event.type() == QEvent.Type.KeyPress:
             if event.key() == Qt.Key.Key_Tab:
                 if obj == self.age_input:
+                    self.payment_input.setFocus()
+                    return True
+                elif obj == self.payment_input:
+                    self.add_paid_days_input.setFocus()
+                    return True
+                elif obj == self.add_paid_days_input:
                     self.male_radio.setFocus()
                     return True
                 elif obj == self.male_radio:
