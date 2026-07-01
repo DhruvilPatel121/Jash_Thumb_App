@@ -245,11 +245,11 @@ class SuccessIcon(QWidget):
 
 class PatientSuccessModal(QWidget):
     @classmethod
-    def show_modal(cls, parent, name, age, gender, department, problem, used_days, paid_days, serial_no=None, duration=2500 ):
+    def show_modal(cls, parent, name, age, gender, department, problem, used_days, paid_days, serial_no=None, duration=5000 ):
         modal = cls(parent, name, age, gender, department, problem, used_days, paid_days, serial_no, duration)
         modal.show()
 
-    def __init__(self, parent, name, age, gender, department, problem, used_days, paid_days, serial_no=None, duration=2500):
+    def __init__(self, parent, name, age, gender, department, problem, used_days, paid_days, serial_no=None, duration=5000):
         super().__init__(parent)
         is_payment_due = int(used_days) > int(paid_days)
         last_day = int(paid_days) - int(used_days)

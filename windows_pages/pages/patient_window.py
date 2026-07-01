@@ -8,6 +8,7 @@ from database.attendance_repository import AttendanceRepository
 from utils.session import Session
 from utils.attendance_history_dialog import AttendanceHistoryDialog
 from datetime import datetime
+from bson import ObjectId
 from PyQt6.QtGui import QDesktopServices
 from PyQt6.QtCore import QUrl
 
@@ -693,21 +694,44 @@ class PatientPage(QWidget):
         self.selected_date = date.toString("yyyy-MM-dd")
         self.load_patients()
     
-    def show_patient_history(self, patient_id, patient_name, created_at, consultancy_fees):
-        self.close_active_dialog() 
+    # def show_patient_history(self, patient_id, patient_name, created_at, consultancy_fees):
+    #     self.close_active_dialog() 
         
+    #     history = self.attendance_repository.get_patient_attendance_history(
+    #         Session.organization_id,
+    #         patient_id
+    #     )
+    #     print(history)
+    #     self.history_dialog.show_dialog(
+    #         patient_name,
+    #         history,
+    #         created_at,        
+    #         consultancy_fees  
+    #     )
+    #     self.active_dialog = self.history_dialog 
+
+    def show_patient_history(self, patient_id, patient_name, created_at, consultancy_fees):
+        self.close_active_dialog()
+
+        fresh_patient = self.patient_repository.patients.find_one({
+            "_id": ObjectId(patient_id)
+        })
+
         history = self.attendance_repository.get_patient_attendance_history(
             Session.organization_id,
             patient_id
         )
-        
+        created_at = fresh_patient.get("created_at")
+        consultancy_fees = fresh_patient.get("consultancy_fees", 0)
+
         self.history_dialog.show_dialog(
             patient_name,
             history,
-            created_at,        
-            consultancy_fees  
+            created_at,
+            consultancy_fees
         )
-        self.active_dialog = self.history_dialog 
+
+        self.active_dialog = self.history_dialog
 
     def show_role_popup(self, event):
         from utils.role_switch import open_role_switch_popup, open_admin_menu_popup

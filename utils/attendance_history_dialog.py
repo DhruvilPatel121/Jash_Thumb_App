@@ -287,36 +287,45 @@ class AttendanceHistoryDialog(QFrame):
         day_data = {day: {'time': None, 'time_color': None, 'is_consulting': False, 'is_last_day': False, 'status_html': None} for day in range(1, 32)}
         
         # 1. Consulting Logic
-        if hasattr(self, 'created_at') and self.created_at:
-            # Consultancy should only be shown if there is a valid paid consultancy fee
-            fees_value = str(self.consultancy_fees).strip().lower()
-            if fees_value not in ("", "0", "free"):
-                try:
-                    fees = float(fees_value)
-                except (ValueError, TypeError):
-                    fees = 0
-                if fees > 0:
-                    if isinstance(self.created_at, str):
-                        try:
-                            reg_date = datetime.strptime(self.created_at[:10], "%Y-%m-%d")
-                        except ValueError:
-                            reg_date = None
-                    else:
-                        reg_date = self.created_at
+        # if hasattr(self, 'created_at') and self.created_at:
+            # # Consultancy should only be shown if there is a valid paid consultancy fee
+            # fees_value = str(self.consultancy_fees).strip().lower()
+            # if fees_value not in ("", "0", "free"):
+            #     try:
+            #         fees = float(fees_value)
+            #     except (ValueError, TypeError):
+            #         fees = 0
+            #     if fees > 0:
+            #         if isinstance(self.created_at, str):
+            #             try:
+            #                 reg_date = datetime.strptime(self.created_at[:10], "%Y-%m-%d")
+            #             except ValueError:
+            #                 reg_date = None
+            #         else:
+            #             reg_date = self.created_at
 
-                    if reg_date and reg_date.month == selected_month and reg_date.year == selected_year:
-                        day_data[reg_date.day]["is_consulting"] = True
-            # if fees > 0:
-            #     if isinstance(self.created_at, str):
-            #         try:
-            #             reg_date = datetime.strptime(self.created_at[:10], "%Y-%m-%d")
-            #         except ValueError:
-            #             reg_date = None
-            #     else:
-            #         reg_date = self.created_at
+            #         if reg_date and reg_date.month == selected_month and reg_date.year == selected_year:
+            #             day_data[reg_date.day]["is_consulting"] = True
+
+            # 1. Consulting Logic
+        if hasattr(self, 'created_at') and self.created_at:
+            # Consultancy fee ne float ma convert karvani koshish karo
+            try:
+                fees = int(self.consultancy_fees) if self.consultancy_fees else 0
+            except (ValueError, TypeError):
+                fees = 0
+
+            if fees > 0:
+                if isinstance(self.created_at, str):
+                    try:
+                        reg_date = datetime.strptime(self.created_at[:10], "%Y-%m-%d")
+                    except ValueError:
+                        reg_date = None
+                else:
+                    reg_date = self.created_at
                 
-            #     if reg_date and reg_date.month == selected_month and reg_date.year == selected_year:
-            #         day_data[reg_date.day]['is_consulting'] = True
+                if reg_date and reg_date.month == selected_month and reg_date.year == selected_year:
+                    day_data[reg_date.day]['is_consulting'] = True
 
         # 2. Attendance Logic
         if hasattr(self, 'full_history'):

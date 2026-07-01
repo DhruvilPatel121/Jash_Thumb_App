@@ -177,10 +177,10 @@ class UpdatePatientDialog(QFrame):
         self.treatment_checkbox = QCheckBox("Treatment start from Today")
 
         self.age_input.setValidator(age_validator)
-        # self.consultancy_input.setValidator(number_validator)
+        self.consultancy_input.setValidator(number_validator)
         # self.payment_input.setValidator(number_validator)
         self.add_paid_days_input.setValidator(number_validator)
-        # self.consultancy_input.setMaxLength(6)
+        self.consultancy_input.setMaxLength(6)
         # self.payment_input.setMaxLength(6)
         self.add_paid_days_input.setMaxLength(4)
         self.mobile_input.setMaxLength(10)
@@ -317,7 +317,7 @@ class UpdatePatientDialog(QFrame):
         self.name_input.setText(patient.get("name", ""))
         self.mobile_input.setText(patient.get("mobile", ""))
         self.age_input.setText(str(patient.get("age", "")))
-        self.consultancy_input.setText(str(patient.get("consultancy_fees", "")))
+        self.consultancy_input.setText(str(patient.get("consultancy_fees", 0)))
         self.payment_input.setText(str(patient.get("payment_per_day", "")))
         self.add_paid_days_input.setText(str(patient.get("paid_days", 0)))
         self.problem_input.setText(patient.get("problem", ""))
@@ -359,7 +359,7 @@ class UpdatePatientDialog(QFrame):
         age = self.age_input.text().strip()
         gender = "Male" if self.male_radio.isChecked() else "Female"
         problem = self.problem_input.text().strip()
-        consultancy_fees = self.consultancy_input.text().strip() or ""
+        consultancy_fees = int(self.consultancy_input.text().strip() or 0)
         payment_per_day = self.payment_input.text().strip() or ""
         add_paid_days = int(self.add_paid_days_input.text().strip() or 0)
         treatment_start_today = self.treatment_checkbox.isChecked()
