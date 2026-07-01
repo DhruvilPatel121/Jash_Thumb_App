@@ -190,8 +190,9 @@ class ManualAttendanceDialog(QDialog):
                 name = p.get('name', 'Unknown')
                 mobile = p.get('mobile', 'N/A')
                 department = p.get('department', 'N/A')
+                age = p.get('age', 'N/A')
                 
-                formatted_text = f"{name}   |   {mobile}   |   {department}"
+                formatted_text = f"{name}   |   {mobile}   |   {department}   |   {age}"
                 
                 item = QListWidgetItem(formatted_text)
                 item.setData(Qt.ItemDataRole.UserRole, p) 
