@@ -163,11 +163,23 @@ class AppCorePage(QWidget):
         if hasattr(self.registration_page, 'scanner') and self.registration_page.scanner.is_connected():
             self.registration_page.clear_fingerprint_scan()
 
+    def clear_search_bars(self):
+        self.dashboard_page.search_input.blockSignals(True)
+        self.dashboard_page.search_input.clear()
+        self.dashboard_page.search_input.blockSignals(False)
+        
+        self.patient_page.search_input.blockSignals(True)
+        self.patient_page.search_input.clear()
+        self.patient_page.search_input.blockSignals(False)
+        if hasattr(self.registration_page, 'clear_registration_form'):
+            self.registration_page.clear_registration_form()
+
     def go_to_dashboard(self):
         if self.sidebar_open:
             self.toggle_sidebar()
         self.close_all_page_popups()
         self.stop_active_scanners()
+        self.clear_search_bars()
         self.content_stack.setCurrentIndex(0)
         self.sidebar.set_active_page("dashboard")
         self.dashboard_page.load_initial_data()
@@ -177,6 +189,7 @@ class AppCorePage(QWidget):
             self.toggle_sidebar()
         self.close_all_page_popups()
         self.stop_active_scanners()
+        self.clear_search_bars()
         self.content_stack.setCurrentIndex(1)
         self.sidebar.set_active_page("registration")
 
@@ -185,6 +198,7 @@ class AppCorePage(QWidget):
             self.toggle_sidebar()
         self.close_all_page_popups()
         self.stop_active_scanners()
+        self.clear_search_bars()
         self.content_stack.setCurrentIndex(2)
         self.sidebar.set_active_page("patient")
         self.patient_page.load_patients()
