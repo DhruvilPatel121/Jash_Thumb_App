@@ -12,13 +12,14 @@ from PyQt6.QtGui import QDesktopServices
 from PyQt6.QtCore import QUrl
 
 class HoverLabel(QLabel):
-    clicked = pyqtSignal(str, str)
+    clicked = pyqtSignal(str, str, object, int)
    
-
-    def __init__(self, text, patient_id):
+    def __init__(self, text, patient_id, created_at, fees):
         super().__init__(text)
         self.patient_id = patient_id
         self.patient_name = text
+        self.created_at = created_at
+        self.fees = fees
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setStyleSheet("""
             QLabel {
@@ -34,8 +35,7 @@ class HoverLabel(QLabel):
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
-            self.clicked.emit(self.patient_id, self.patient_name)
-
+            self.clicked.emit(self.patient_id, self.patient_name, self.created_at, self.fees)
 
 class PatientPage(QWidget):
 
@@ -521,8 +521,9 @@ class PatientPage(QWidget):
             set_item(0, row + 1)
             patient_name = patient.get("name", "")
             patient_id = str(patient["_id"])
-            
-            name_label = HoverLabel(patient_name, patient_id)
+            created_at = patient.get("created_at")
+            consultancy_fees = int(patient.get("consultancy_fees") or 0) 
+            name_label = HoverLabel(patient_name, patient_id, created_at, consultancy_fees)
             name_label.clicked.connect(self.show_patient_history)
 
             name_container = QWidget()
@@ -692,16 +693,19 @@ class PatientPage(QWidget):
         self.selected_date = date.toString("yyyy-MM-dd")
         self.load_patients()
     
-    def show_patient_history(self, patient_id, patient_name):
+    def show_patient_history(self, patient_id, patient_name, created_at, consultancy_fees):
         self.close_active_dialog() 
         
         history = self.attendance_repository.get_patient_attendance_history(
             Session.organization_id,
             patient_id
         )
+        
         self.history_dialog.show_dialog(
             patient_name,
-            history
+            history,
+            created_at,        
+            consultancy_fees  
         )
         self.active_dialog = self.history_dialog 
 

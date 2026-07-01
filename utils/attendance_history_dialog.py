@@ -10,14 +10,13 @@ class AttendanceHistoryDialog(QFrame):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.hide()
-        self.setFixedSize(1100, 720)
+        self.setFixedSize(1200, 860)
         self.setup_ui()
         self.esc_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Escape), self)
         self.esc_shortcut.activated.connect(self.hide)
 
     def setup_ui(self):
         self.setObjectName("historyCard")
-        # Keep outer card border so it looks like a dialog popup
         self.setStyleSheet("""
         QFrame#historyCard{
             background-color: #FFFFFF;
@@ -37,7 +36,7 @@ class AttendanceHistoryDialog(QFrame):
         QLabel{
             color: #1E293B;
             background: transparent;
-            font-size: 24px;
+            font-size: 26px; /* ફોન્ટ મોટા કર્યા */
             font-weight: bold;
         }
         """)
@@ -45,7 +44,6 @@ class AttendanceHistoryDialog(QFrame):
 
         info_frame = QFrame()
         info_frame.setFixedHeight(65) 
-        
         info_frame.setStyleSheet("""
         QFrame {
             background-color: #F8FAFC; 
@@ -57,7 +55,7 @@ class AttendanceHistoryDialog(QFrame):
         info_layout = QHBoxLayout(info_frame)
         info_layout.setContentsMargins(25, 0, 25, 0) 
 
-        label_style_title = "color: #64748B; font-size: 15px; border: none; background: transparent;"
+        label_style_title = "color: #64748B; font-size: 16px; border: none; background: transparent;"
         self.paid_days_label = QLabel("0")
         self.used_days_label = QLabel("0")
         self.balance_days_label = QLabel("0")
@@ -67,7 +65,6 @@ class AttendanceHistoryDialog(QFrame):
         self.name_label = QLabel("Patient Name")
         self.name_label.setStyleSheet("color: #0F172A; font-size: 20px; font-weight: bold; border: none; background: transparent;")
 
-        # Visits Section 
         visits_title = QLabel("Total Visits: ")
         visits_title.setStyleSheet(label_style_title)
         
@@ -84,11 +81,9 @@ class AttendanceHistoryDialog(QFrame):
                 color: #1E293B;
                 background-color: #FFFFFF;
                 min-width: 120px;
-                min-height: 35px;
+                min-height: 38px; /* કોમ્બો બોક્સ મોટા કર્યા */
             }
-            QComboBox::drop-down {
-                border: none;
-            }
+            QComboBox::drop-down { border: none; }
             QComboBox QAbstractItemView {
                 background-color: #FFFFFF;
                 color: #1E293B; 
@@ -97,10 +92,7 @@ class AttendanceHistoryDialog(QFrame):
                 selection-color: #4F46E5;
                 outline: none;
             }
-            QComboBox QAbstractItemView::item {
-                color: #1E293B; 
-                min-height: 35px; 
-            }
+            QComboBox QAbstractItemView::item { min-height: 35px; }
         """
         self.month_combo = QComboBox()
         months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
@@ -111,9 +103,7 @@ class AttendanceHistoryDialog(QFrame):
 
         self.year_combo = QComboBox()
         current_year = datetime.now().year
-        start_year = 2025 
-        max_year = current_year + 10 
-        years = [str(y) for y in range(start_year, max_year + 1)]
+        years = [str(y) for y in range(2025, current_year + 11)]
         self.year_combo.addItems(years)
         self.year_combo.setMaxVisibleItems(7)
         self.year_combo.setStyleSheet(combo_style)
@@ -124,21 +114,16 @@ class AttendanceHistoryDialog(QFrame):
 
         info_layout.addWidget(name_title)
         info_layout.addWidget(self.name_label)
-        
         info_layout.addStretch() 
-        
         info_layout.addWidget(visits_title)
         info_layout.addWidget(self.visits_label)
-        
         info_layout.addStretch() 
-        
         info_layout.addWidget(self.month_combo)
         info_layout.addSpacing(10)
         info_layout.addWidget(self.year_combo)
 
         main_layout.addWidget(info_frame)
 
-        
         self.grid_frame = QFrame()
         self.grid_frame.setStyleSheet("""
             QFrame {
@@ -152,11 +137,12 @@ class AttendanceHistoryDialog(QFrame):
         self.grid_layout.setContentsMargins(20, 20, 20, 20)
         self.grid_layout.setSpacing(12) 
 
-        self.day_time_labels = {}
+        # આ નવી ડિક્શનરી છે જેમાં આખું કાર્ડ અને લેબલ સ્ટોર થશે
+        self.day_cards = {} 
 
         for day in range(1, 32):
             day_card = QFrame()
-            day_card.setMinimumHeight(100) 
+            day_card.setMinimumHeight(130) # બોક્સની હાઈટ 100 થી વધારીને 130 કરી 
             day_card.setStyleSheet("""
                 QFrame {
                     background-color: #F8FAFC;
@@ -186,7 +172,7 @@ class AttendanceHistoryDialog(QFrame):
             
             time_lbl = QLabel("")
             time_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            time_lbl.setMinimumHeight(60) 
+            time_lbl.setMinimumHeight(75) # ટાઈમ માટે જગ્યા વધારી 
             time_lbl.setStyleSheet("""
                 QLabel {
                     color: #059669;
@@ -204,7 +190,12 @@ class AttendanceHistoryDialog(QFrame):
             col = (day - 1) % 8
             self.grid_layout.addWidget(day_card, row, col)
             
-            self.day_time_labels[day] = time_lbl
+            # આખા બોક્સનું એક્સેસ સ્ટોર કર્યું
+            self.day_cards[day] = {
+                'card': day_card,
+                'date_lbl': date_lbl,
+                'time_lbl': time_lbl
+            }
 
         main_layout.addWidget(self.grid_frame)
 
@@ -215,7 +206,6 @@ class AttendanceHistoryDialog(QFrame):
         close_button = QPushButton("Close")
         close_button.setFixedSize(140, 50) 
         close_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        
         close_button.setStyleSheet("""
         QPushButton{
             background-color: #DBEAFE; 
@@ -225,22 +215,16 @@ class AttendanceHistoryDialog(QFrame):
             color: #1D4ED8; 
             font-weight: bold;
         }
-        QPushButton:hover{ 
-            background-color: #BFDBFE; 
-        }
-        QPushButton:pressed{ 
-            border: 1px solid #2563EB; 
-            padding-top: 3px; 
-            padding-left: 3px; 
-        }
+        QPushButton:hover{ background-color: #BFDBFE; }
+        QPushButton:pressed{ border: 1px solid #2563EB; padding-top: 3px; padding-left: 3px; }
         """)
         close_button.clicked.connect(self.hide)
 
         footer_layout.addWidget(close_button)
         main_layout.addLayout(footer_layout)
 
-    def show_dialog(self, patient_name, history):
-        self.load_history(patient_name, history)
+    def show_dialog(self, patient_name, history, created_at=None, consultancy_fees=0):
+        self.load_history(patient_name, history, created_at, consultancy_fees)
         parent = self.parent()
 
         if parent:
@@ -251,10 +235,12 @@ class AttendanceHistoryDialog(QFrame):
         self.raise_()
         self.show()
 
-    def load_history(self, patient_name, history):
+    def load_history(self, patient_name, history, created_at, consultancy_fees):
         self.name_label.setText(patient_name)
         
         self.full_history = history 
+        self.created_at = created_at
+        self.consultancy_fees = consultancy_fees
         
         self.month_combo.blockSignals(True)
         self.year_combo.blockSignals(True)
@@ -269,14 +255,46 @@ class AttendanceHistoryDialog(QFrame):
         self.filter_and_display()
 
     def filter_and_display(self):
-        for day, label in self.day_time_labels.items():
-            label.setText("")
+        DEFAULT_CARD_STYLE = """
+            QFrame { background-color: #F8FAFC; border: 1px solid #CBD5E1; border-radius: 8px; }
+        """
+        DEFAULT_DATE_STYLE = """
+            QLabel { background-color: #EEF2FF; color: #4F46E5; font-weight: bold; font-size: 18px; border-top-left-radius: 7px; border-top-right-radius: 7px; border-bottom: 1px solid #CBD5E1; }
+        """
+        PURPLE_CARD_STYLE = """
+            QFrame { background-color: #FAF5FF; border: 2px solid #D8B4FE; border-radius: 8px; }
+        """
+        PURPLE_DATE_STYLE = """
+            QLabel { background-color: #F3E8FF; color: #9333EA; font-weight: bold; font-size: 18px; border-top-left-radius: 6px; border-top-right-radius: 6px; border-bottom: 1px solid #D8B4FE; }
+        """
+
+        for day, widgets in self.day_cards.items():
+            widgets['time_lbl'].setText("")
+            widgets['card'].setStyleSheet(DEFAULT_CARD_STYLE)
+            widgets['date_lbl'].setStyleSheet(DEFAULT_DATE_STYLE)
 
         selected_month = self.month_combo.currentIndex() + 1
         selected_year = int(self.year_combo.currentText())
-
         monthly_visits = 0
+        
+        day_data = {day: {'time': None, 'time_color': None, 'is_consulting': False, 'status_html': None} for day in range(1, 32)}
+        
+        # Consulting 
+        if hasattr(self, 'created_at') and self.created_at:
+            fees = int(self.consultancy_fees) if self.consultancy_fees else 0
+            if fees > 0:
+                if isinstance(self.created_at, str):
+                    try:
+                        reg_date = datetime.strptime(self.created_at[:10], "%Y-%m-%d")
+                    except ValueError:
+                        reg_date = None
+                else:
+                    reg_date = self.created_at
+                
+                if reg_date and reg_date.month == selected_month and reg_date.year == selected_year:
+                    day_data[reg_date.day]['is_consulting'] = True
 
+        # Attendance 
         if hasattr(self, 'full_history'):
             for record in self.full_history:
                 raw_date = str(record.get("attendance_date", ""))
@@ -300,30 +318,44 @@ class AttendanceHistoryDialog(QFrame):
                                     except ValueError:
                                         pass 
                             
-                            # ---- NAVU PAYMENT LOGIC AHIYA THI SHARU THAY CHE ----
                             used_days = int(record.get("used_days", 0) or 0)
                             paid_days = int(record.get("paid_days", 0) or 0)
                             
                             if used_days <= paid_days:
-                                # Payment Done - Green Label
-                                status_html = "<br><span style='background-color: #DCFCE7; color: #16A34A; padding: 2px 6px; border-radius: 4px; font-size: 11px;'>Paid</span>"
+                                status_html = "<span style='background-color: #DCFCE7; color: #16A34A; padding: 3px 8px; border-radius: 4px; font-size: 12px;'>Paid</span>"
                                 time_color = "#16A34A" 
                             else:
-                                # Payment Due - Red Label
-                                status_html = "<br><span style='background-color: #FEE2E2; color: #DC2626; padding: 2px 6px; border-radius: 4px; font-size: 11px;'>Due</span>"
+                                status_html = "<span style='background-color: #FEE2E2; color: #DC2626; padding: 3px 8px; border-radius: 4px; font-size: 12px;'>Due</span>"
                                 time_color = "#DC2626"
-                                
-                            # Final text HTML format ma
-                            final_text = f"<span style='color: {time_color}; font-size: 13px;'>{display_time}</span>{status_html}"
-                            # --------------------------------------------------------
                             
-                            if day in self.day_time_labels:
-                                self.day_time_labels[day].setTextFormat(Qt.TextFormat.RichText) # Rich text enable karyu
-                                self.day_time_labels[day].setText(final_text)
-                                monthly_visits += 1 
+                            day_data[day]['time'] = display_time
+                            day_data[day]['time_color'] = time_color
+                            day_data[day]['status_html'] = status_html
+                            monthly_visits += 1 
                     except ValueError:
                         pass
         
+        for day, widgets in self.day_cards.items():
+            data = day_data[day]
+            elements = []
+            
+            if data['is_consulting']:
+                widgets['card'].setStyleSheet(PURPLE_CARD_STYLE)
+                widgets['date_lbl'].setStyleSheet(PURPLE_DATE_STYLE)
+
+            if data['is_consulting']:
+                elements.append("<span style='color: #9333EA; font-size: 13px; font-weight: bold;'>Consulting</span>")
+                
+            if data['time']:
+                elements.append(f"<span style='color: {data['time_color']}; font-size: 14px; font-weight: bold;'>{data['time']}</span>")
+            
+            
+            if data['status_html']:
+                elements.append(data['status_html'])
+            
+            if elements:
+                final_text = "<br>".join(elements)
+                widgets['time_lbl'].setTextFormat(Qt.TextFormat.RichText)
+                widgets['time_lbl'].setText(final_text)
+        
         self.visits_label.setText(str(monthly_visits))
-
-
