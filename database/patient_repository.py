@@ -22,6 +22,7 @@ class PatientRepository:
         gender,
         department,
         problem,
+        consultancy_fees,
         payment_per_day,
         paid_days,
         fingerprint_template
@@ -40,6 +41,7 @@ class PatientRepository:
                 "gender": gender,
                 "department": department,
                 "problem": problem,
+                "consultancy_fees": consultancy_fees,
                 "payment_per_day": payment_per_day,
                 "paid_days": paid_days,
                 "fingerprint_template": fingerprint_template,
@@ -106,9 +108,6 @@ class PatientRepository:
     fingerprint_template=None
     ):
         
-        patient = self.patients.find_one({"_id": patient_id})
-        current_paid_days = patient.get("paid_days", 0)
-        updated_paid_days = current_paid_days + add_paid_days
         try:
             update_data = {
                  "name": name,
@@ -118,7 +117,7 @@ class PatientRepository:
                 "department": department,
                 "problem": problem,
                 "payment_per_day": payment_per_day,
-                "paid_days": updated_paid_days,
+                "paid_days": add_paid_days,
             }
             if fingerprint_template:
                 update_data["fingerprint_template"] = fingerprint_template
@@ -137,7 +136,6 @@ class PatientRepository:
             
             # Backup: deleted_patients
             self.deleted_patients.insert_one(patient)
-            
             result = self.executor.execute("DELETE", "patients", {"_id": patient_id})
             
             self.patients.update_many(

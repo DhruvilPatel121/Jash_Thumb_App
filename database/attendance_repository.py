@@ -64,15 +64,15 @@ class AttendanceRepository:
             ]
         return list(self.attendance.find(query).sort("created_at", +1))
     
-    def update_attendance_details(self, patient_id, name, mobile, age, department, problem):
+    def update_attendance_details(self, patient_id, name, mobile, age,add_paid_days, department, problem):
         today_date = datetime.now().strftime("%Y-%m-%d")
-        
         try:
             update1 = {"$set": {
                     "patient_name": name,
                     "mobile": mobile,
                     "age": age,
                     "department": department,
+                    "paid_days": add_paid_days
             }}
             self.executor.execute("UPDATE", "attendance", {"patient_id": str(patient_id)}, update1)
 
@@ -124,14 +124,8 @@ class AttendanceRepository:
         except Exception:
             return 0
         
-
-
     def delete_attendance(self, attendance_id):
-        
-        
         try:
-            # We use DBExecutor to execute the delete. 
-            # This ensures it deletes locally AND creates a task in the offline_outbox for Atlas.
             self.executor.execute(
                 "DELETE", 
                 "attendance", 

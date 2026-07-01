@@ -184,6 +184,7 @@ class RegistrationPage(QWidget):
         self.gender_label = QLabel("Gender")
         self.department_label = QLabel("Department")
         self.problem_label = QLabel("Problem")
+        self.consultancy_label = QLabel("Consultancy Fee")
         self.payment_label = QLabel("Payment Per Day")
         self.total_days_label = QLabel("Total Days")
 
@@ -203,6 +204,7 @@ class RegistrationPage(QWidget):
                 self.mobile_label,
                 self.age_label,
                 self.gender_label,
+                self.consultancy_label,
                 self.department_label,
                 self.problem_label,
                 self.payment_label,
@@ -218,13 +220,17 @@ class RegistrationPage(QWidget):
         self.name_input = QLineEdit()
         self.mobile_input = QLineEdit()
         self.age_input = QLineEdit()
+        self.consultancy_input = QLineEdit()
         self.payment_input = QLineEdit()
         self.total_days_input = QLineEdit()
         self.name_input.setPlaceholderText("   Enter full name")
         self.mobile_input.setPlaceholderText("   Enter phone number")
         self.age_input.setPlaceholderText("   Enter Age")
+        self.consultancy_input.setPlaceholderText("   Enter consultancy fee")
         self.payment_input.setPlaceholderText("   Enter daily fee")
         self.total_days_input.setPlaceholderText("   Enter paid days")
+
+        #validation for input fields
         number_validator = QRegularExpressionValidator(QRegularExpression("^[0-9]*$"))
         self.mobile_input.setMaxLength(10)
         self.age_input.setMaxLength(6)
@@ -236,6 +242,9 @@ class RegistrationPage(QWidget):
         self.payment_input.setMaxLength(7)
         self.total_days_input.setMaxLength(4)
         self.mobile_input.setValidator(number_validator)
+        self.consultancy_input.setValidator(number_validator)
+
+
         self.neuro_radio = QRadioButton("Neuro")
         self.ortho_radio = QRadioButton("Ortho")
         self.dept_group = QButtonGroup()
@@ -315,7 +324,8 @@ class RegistrationPage(QWidget):
             self.age_input,
             self.problem_input,
             self.payment_input,
-            self.total_days_input
+            self.total_days_input,
+            self.consultancy_input
 
         ]:
             widget.setStyleSheet(input_style)
@@ -328,12 +338,12 @@ class RegistrationPage(QWidget):
         self.form_layout.addRow(self.name_label, self.name_input)
         self.form_layout.addRow(self.mobile_label, self.mobile_input)
         self.form_layout.addRow(self.age_label, self.age_input)
+        self.form_layout.addRow(self.consultancy_label, self.consultancy_input)
         self.form_layout.addRow(self.payment_label,self.payment_input)
         self.form_layout.addRow(self.total_days_label,self.total_days_input)
         self.form_layout.addRow(self.gender_label,gender_layout)
         self.form_layout.addRow(self.department_label, self.department_layout)
         self.form_layout.addRow(self.problem_label,self.problem_input)
-        
         self.patient_layout.addStretch()
 
 
@@ -349,6 +359,7 @@ class RegistrationPage(QWidget):
         self.body_layout.addWidget(self.device_status_card, 4)
         self.patient_detail_card.setMinimumHeight(500)
         self.device_status_card.setMinimumHeight(500)
+
         #fingerprint card layout
         self.fingerprint_layout = QVBoxLayout()
         self.fingerprint_layout.setContentsMargins(25,25,25,25)
@@ -507,7 +518,6 @@ class RegistrationPage(QWidget):
         }
         """)
         self.dummy_scan_btn.clicked.connect(self.apply_dummy_fingerprint)
-
         capture_button_layout = QHBoxLayout()
         capture_button_layout.setSpacing(12) 
         capture_button_layout.addWidget(self.capture_btn)
@@ -611,13 +621,15 @@ class RegistrationPage(QWidget):
             QDesktopServices.openUrl(QUrl("https://shivvilonsolutions.com/"))
         self.footer_label.mousePressEvent = open_website
 
+        # Assuming this is inside your setup/init method
         self.footer_layout.addWidget(self.footer_label)
         self.content_layout.addLayout(self.footer_layout)
 
-        # અહીયા 2 નવા ફિલ્ડ add કર્યા છે
+        # Installing event filters
         self.age_input.installEventFilter(self)
-        self.payment_input.installEventFilter(self)      # NAVU ADD KARYU
-        self.total_days_input.installEventFilter(self)   # NAVU ADD KARYU
+        self.consultancy_input.installEventFilter(self)
+        self.payment_input.installEventFilter(self)   
+        self.total_days_input.installEventFilter(self) 
         self.male_radio.installEventFilter(self)
         self.female_radio.installEventFilter(self)
         self.neuro_radio.installEventFilter(self)
@@ -626,34 +638,46 @@ class RegistrationPage(QWidget):
     def eventFilter(self, obj, event):
         if event.type() == QEvent.Type.KeyPress:
             if event.key() == Qt.Key.Key_Tab:
+                
                 if obj == self.age_input:
+                    self.consultancy_input.setFocus()
+                    return True
+                
+                elif obj == self.consultancy_input:
                     self.payment_input.setFocus()
                     return True
+                
                 elif obj == self.payment_input:
                     self.total_days_input.setFocus()
                     return True
+                
                 elif obj == self.total_days_input:
-                    self.gender_sequence_active = True
                     self.male_radio.setFocus()
                     return True
-
-                if self.gender_sequence_active:
-                    if obj == self.male_radio:
-                        self.female_radio.setFocus()
-                        return True
-                    elif obj == self.female_radio:
-                        self.neuro_radio.setFocus()
-                        return True
-                    elif obj == self.neuro_radio:
-                        self.ortho_radio.setFocus()
-                        return True
-                    elif obj == self.ortho_radio:
-                        self.gender_sequence_active = False
-                        self.problem_input.setFocus()
-                        return True
+                
+                # Directly cycle through the radio buttons
+                elif obj == self.male_radio:
+                    self.female_radio.setFocus()
+                    return True
+                
+                elif obj == self.female_radio:
+                    self.neuro_radio.setFocus()
+                    return True
+                
+                elif obj == self.neuro_radio:
+                    self.ortho_radio.setFocus()
+                    return True
+                
+                elif obj == self.ortho_radio:
+                    self.problem_input.setFocus()
+                    return True
+                
+                elif obj == self.problem_input:
+                    self.c.setFocus()  
+                    return True
 
         return super().eventFilter(obj, event)
-
+    
     def validate_registration(self):
         name = self.name_input.text().strip()
         mobile = self.mobile_input.text().strip()
@@ -827,6 +851,7 @@ class RegistrationPage(QWidget):
         problem = self.problem_input.text().strip()
         payment_per_day = int(self.payment_input.text().strip() or 0)
         paid_days = int(self.total_days_input.text().strip() or 0)
+        consultancy_fees = int(self.consultancy_input.text().strip() or 0)
 
         try:
             existing_patient =self.is_fingerprint_already_registered()
@@ -849,6 +874,7 @@ class RegistrationPage(QWidget):
                 gender,
                 department,
                 problem,
+                consultancy_fees,
                 payment_per_day,
                 paid_days,
                 self.template_bytes
@@ -893,6 +919,7 @@ class RegistrationPage(QWidget):
         self.problem_input.clear()
         self.payment_input.clear()
         self.total_days_input.clear()
+        self.consultancy_input.clear()
         self.gender_group.setExclusive(False)
         self.male_radio.setChecked(False)
         self.female_radio.setChecked(False)

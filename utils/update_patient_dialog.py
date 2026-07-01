@@ -284,7 +284,7 @@ class UpdatePatientDialog(QFrame):
         self.mobile_input.setText(patient.get("mobile", ""))
         self.age_input.setText(str(patient.get("age", "")))
         self.payment_input.setText(str(patient.get("payment_per_day", 0)))
-        self.add_paid_days_input.clear()
+        self.add_paid_days_input.setText(str(patient.get("paid_days", 0)))
         self.problem_input.setText(patient.get("problem", ""))
 
         department = patient.get("department", "")
@@ -365,6 +365,7 @@ class UpdatePatientDialog(QFrame):
                     name,
                     mobile,
                     age,
+                    add_paid_days,
                     department,
                     problem
                 )
