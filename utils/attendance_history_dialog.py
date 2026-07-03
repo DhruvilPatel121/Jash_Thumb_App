@@ -238,7 +238,10 @@ class AttendanceHistoryDialog(QFrame):
 
     def load_history(self, patient_name, history, created_at, consultancy_fees):
         self.name_label.setText(patient_name)
-        
+        print(f"------------ DEBUG INFO ------------")
+        print(f"Patient: {patient_name}")
+        print(f"Fees Received from Main Window: {consultancy_fees}")
+        print(f"------------------------------------")
         self.full_history = history 
         self.created_at = created_at
         self.consultancy_fees = consultancy_fees
@@ -279,34 +282,14 @@ class AttendanceHistoryDialog(QFrame):
             widgets['time_lbl'].setText("")
             widgets['card'].setStyleSheet(DEFAULT_CARD_STYLE)
             widgets['date_lbl'].setStyleSheet(DEFAULT_DATE_STYLE)
+        
 
         selected_month = self.month_combo.currentIndex() + 1
         selected_year = int(self.year_combo.currentText())
         monthly_visits = 0
         
         day_data = {day: {'time': None, 'time_color': None, 'is_consulting': False, 'is_last_day': False, 'status_html': None} for day in range(1, 32)}
-        
-        # 1. Consulting Logic
-        # if hasattr(self, 'created_at') and self.created_at:
-            # # Consultancy should only be shown if there is a valid paid consultancy fee
-            # fees_value = str(self.consultancy_fees).strip().lower()
-            # if fees_value not in ("", "0", "free"):
-            #     try:
-            #         fees = float(fees_value)
-            #     except (ValueError, TypeError):
-            #         fees = 0
-            #     if fees > 0:
-            #         if isinstance(self.created_at, str):
-            #             try:
-            #                 reg_date = datetime.strptime(self.created_at[:10], "%Y-%m-%d")
-            #             except ValueError:
-            #                 reg_date = None
-            #         else:
-            #             reg_date = self.created_at
-
-            #         if reg_date and reg_date.month == selected_month and reg_date.year == selected_year:
-            #             day_data[reg_date.day]["is_consulting"] = True
-
+       
             # 1. Consulting Logic
         if hasattr(self, 'created_at') and self.created_at:
             # Consultancy fee ne float ma convert karvani koshish karo
@@ -325,7 +308,8 @@ class AttendanceHistoryDialog(QFrame):
                     reg_date = self.created_at
                 
                 if reg_date and reg_date.month == selected_month and reg_date.year == selected_year:
-                    day_data[reg_date.day]['is_consulting'] = True
+                    print("Consulting condition TRUE")
+                    day_data[reg_date.day]["is_consulting"] = True
 
         # 2. Attendance Logic
         if hasattr(self, 'full_history'):
@@ -353,34 +337,53 @@ class AttendanceHistoryDialog(QFrame):
                             
                             used_days = int(record.get("used_days", 0) or 0)
                             paid_days = int(record.get("paid_days", 0) or 0)
-                            
+                            print(used_days)
+                            print(paid_days)
                             time_color = "#64748B"  # Default slate color (or whatever standard color you prefer)
                             status_html = None
                             payment_html = None
+                            # if used_days > 0:
+                            #     if used_days == paid_days:
+                            #         status_html = "<span style='background-color: #FFEDD5; color: #EA580C; padding: 3px 8px; border-radius: 4px; font-size: 12px;'>Last Day</span>"
+                            #         time_color = "#EA580C"
+                            #         day_data[day]['is_last_day'] = True  
+                                
+                            #     # elif (paid_days - used_days) == 1:
+                            #     #     status_html = "<span style='background-color: #FEF08A; color: #854D0E; padding: 3px 8px; border-radius: 4px; font-size: 12px;'>1 Day Left</span>"
+                            #     #     time_color = "#CA8A04" 
+                                
+                            #     if used_days < paid_days:
+                            #         payment_html = "<span style='background-color: #DCFCE7; color: #16A34A; padding: 3px 8px; border-radius: 4px; font-size: 12px;'>Paid</span>"
+                            #         time_color = "#16A34A" 
+                            #         day_data[day]['payment_html'] = payment_html
+                                
+                            #     else:
+                            #         payment_html = "<span style='background-color: #FEE2E2; color: #DC2626; padding: 3px 8px; border-radius: 4px; font-size: 12px;'>Due</span>"
+                            #         time_color = "#DC2626"
+                            #         day_data[day]['payment_html'] = payment_html
+                            # # Now these will never throw an UnboundLocalError
+                            # day_data[day]['time'] = display_time
+                            # day_data[day]['time_color'] = time_color
+                            # day_data[day]['status_html'] = status_html
                             if used_days > 0:
-                                if used_days == paid_days:
-                                    status_html = "<span style='background-color: #FFEDD5; color: #EA580C; padding: 3px 8px; border-radius: 4px; font-size: 12px;'>Last Day</span>"
-                                    time_color = "#EA580C"
-                                    day_data[day]['is_last_day'] = True  
-                                
-                                elif (paid_days - used_days) == 1:
-                                    status_html = "<span style='background-color: #FEF08A; color: #854D0E; padding: 3px 8px; border-radius: 4px; font-size: 12px;'>1 Day Left</span>"
-                                    time_color = "#CA8A04" 
-                                
-                                if used_days < paid_days:
-                                    payment_html = "<span style='background-color: #DCFCE7; color: #16A34A; padding: 3px 8px; border-radius: 4px; font-size: 12px;'>Paid</span>"
-                                    time_color = "#16A34A" 
+                                    if used_days <= paid_days:
+                                        payment_html = "<span style='background-color: #DCFCE7; color: #16A34A; padding: 3px 8px; border-radius: 4px; font-size: 12px;'>Paid</span>"
+                                        time_color = "#16A34A" 
+                                    else:
+                                        payment_html = "<span style='background-color: #FEE2E2; color: #DC2626; padding: 3px 8px; border-radius: 4px; font-size: 12px;'>Due</span>"
+                                        time_color = "#DC2626"
+                                        
                                     day_data[day]['payment_html'] = payment_html
-                                
-                                else:
-                                    payment_html = "<span style='background-color: #FEE2E2; color: #DC2626; padding: 3px 8px; border-radius: 4px; font-size: 12px;'>Due</span>"
-                                    time_color = "#DC2626"
-                                    day_data[day]['payment_html'] = payment_html
-                            # Now these will never throw an UnboundLocalError
+
+                                    if paid_days > 0 and used_days == paid_days:
+                                        status_html = "<span style='background-color: #FFEDD5; color: #EA580C; padding: 3px 8px; border-radius: 4px; font-size: 12px;'>Last Day</span>"
+                                        time_color = "#EA580C"
+                                        
+                                        day_data[day]['is_last_day'] = True  
+                                        day_data[day]['status_html'] = status_html
+                                        
                             day_data[day]['time'] = display_time
                             day_data[day]['time_color'] = time_color
-                            day_data[day]['status_html'] = status_html
-                            
                             monthly_visits += 1
                     except ValueError:
                         pass

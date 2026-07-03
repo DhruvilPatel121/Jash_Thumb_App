@@ -679,7 +679,13 @@ class DashboardPage(QWidget):
             used_days = int(record.get("used_days", 0) or 0)
             is_payment_due = used_days > paid_days
             print("dashboard",is_payment_due)
-            last_day = paid_days - used_days
+            
+            # FIXED: Make sure paid_days is greater than 0 to avoid 0 == 0 bug
+            if paid_days > 0 and paid_days == used_days:
+                last_day = True
+            else:
+                last_day = False
+                
             print(f"dashboard   last_day: {last_day} , paid_days: {paid_days}, used_days: {used_days}")
 
             problem = record.get("problem", "").strip()
@@ -707,23 +713,28 @@ class DashboardPage(QWidget):
             ]
             
             for col_index, item in enumerate(items):
-                
-                if col_index in (1, 4):      # Patient Name and Problem
+                if col_index in (1, 4):      
                     item.setTextAlignment(
                         Qt.AlignmentFlag.AlignLeft |
                         Qt.AlignmentFlag.AlignVCenter
                     )
                 else:
                     item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-                item.setBackground(row_bg_color)
-                if is_completed:
-                    item.setForeground(QColor("#94A3B8")) 
-                elif is_payment_due:
-                    item.setForeground(QColor("#DC2626"))
-                    item.setBackground(QColor("#DC2626"))
-                elif last_day == 1:
-                    item.setForeground(QColor("#FFBF00"))
-                    item.setBackground(QColor("#FFBF00"))
+                
+                # FIXED: Logic hierarchy and colors so text remains readable
+                if is_payment_due:
+                    item.setBackground(QColor("#FEE2E2")) # Light Red Background
+                    item.setForeground(QColor("#DC2626")) # Dark Red Text
+                elif last_day:
+                    item.setBackground(QColor("#FFF3CD")) # Light Yellow Background
+                    item.setForeground(QColor("#997400")) # Dark Yellow/Brown Text
+                elif is_completed:
+                    item.setBackground(row_bg_color)
+                    item.setForeground(QColor("#94A3B8")) # Gray Text
+                else:
+                    item.setBackground(row_bg_color)
+                    item.setForeground(QColor("#334155")) # Default Text
+
                 target_table.setItem(row_idx, col_index, item)
             
             queue_no = record.get('queue_no', row_idx + 1)
@@ -731,18 +742,8 @@ class DashboardPage(QWidget):
             badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
             badge.setFixedSize(32, 32)
 
-            if is_completed:
-                badge.setStyleSheet("""
-                QLabel{
-                    background-color:#E2E8F0;
-                    color:#64748B;
-                    border-radius:16px;
-                    font-size:14px;
-                    font-weight:700;
-                }
-                """)
-
-            elif is_payment_due:
+            # FIXED: Changed last_day == 1 to last_day and updated hierarchy
+            if is_payment_due:
                 badge.setStyleSheet("""
                 QLabel{
                     background-color:#FEE2E2;
@@ -753,7 +754,7 @@ class DashboardPage(QWidget):
                     font-weight:700;
                 }
                 """)
-            elif last_day == 1:
+            elif last_day:
                 badge.setStyleSheet("""
                 QLabel{
                     background-color:#FFF3CD;
@@ -763,7 +764,16 @@ class DashboardPage(QWidget):
                     font-weight:700;
                 }
                 """)    
-
+            elif is_completed:
+                badge.setStyleSheet("""
+                QLabel{
+                    background-color:#E2E8F0;
+                    color:#64748B;
+                    border-radius:16px;
+                    font-size:14px;
+                    font-weight:700;
+                }
+                """)
             else:
                 badge.setStyleSheet("""
                 QLabel{
