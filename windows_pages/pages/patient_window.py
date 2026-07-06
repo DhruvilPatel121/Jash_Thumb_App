@@ -11,12 +11,16 @@ from datetime import datetime
 from bson import ObjectId
 from PyQt6.QtGui import QDesktopServices
 from PyQt6.QtCore import QUrl
+import logging
+
+logger = logging.getLogger(__name__)
 
 class HoverLabel(QLabel):
     clicked = pyqtSignal(str, str, object, int)
    
     def __init__(self, text, patient_id, created_at, fees):
         super().__init__(text)
+        logger.info("Initializing HoverLabel for patient %s", text)
         self.patient_id = patient_id
         self.patient_name = text
         self.created_at = created_at
@@ -44,6 +48,7 @@ class PatientPage(QWidget):
 
     def __init__(self, db=None):
         super().__init__()
+        logger.info("Initializing PatientPage")
         self.db = db
         self.active_dialog = None
         self.current_role = "Admin"
@@ -58,6 +63,7 @@ class PatientPage(QWidget):
         self.load_patient_counts()
 
     def setup_ui(self):
+        logger.info("Setting up UI for PatientPage")
         # Main Layout
         self.main_layout = QHBoxLayout()
         self.main_layout.setContentsMargins(0, 0, 0, 0)
@@ -508,6 +514,8 @@ class PatientPage(QWidget):
 
 
     def load_patients(self, search_text=None):
+        logger.info("Loading patients from repository")
+        logger.debug("load_patients called with selected_date=%s search_text=%s", self.selected_date, search_text)
         patients = self.patient_repository.get_patient_data(Session.organization_id,self.selected_date,search_text)
 
         self.patient_table.setRowCount(len(patients))
@@ -575,6 +583,7 @@ class PatientPage(QWidget):
                 try:
                     formatted_date = datetime.strptime(raw_date[:10], "%Y-%m-%d").strftime("%d-%m-%Y")
                 except ValueError:
+                    logger.error("Invalid created_at date format: %s", raw_date, exc_info=True)
                     formatted_date = raw_date 
             
             set_item(7, formatted_date)
@@ -582,6 +591,7 @@ class PatientPage(QWidget):
             self.create_action_buttons(row, patient)
 
     def load_dashboard_counts(self):
+        logger.info("Loading dashboard patient and attendance counts")
         organization_id = (Session.organization_id)
         attendance_date = self.selected_date
         total_patients = (self.attendance_worker.patient_repository.count_patients(organization_id))
@@ -590,6 +600,7 @@ class PatientPage(QWidget):
         self.total_patient_count.setText(str(total_patients))
 
     def create_action_buttons(self, row, patient):
+        logger.debug("Creating action buttons for patient row=%s", row)
         container = QWidget()
         layout = QHBoxLayout()
         layout.setContentsMargins(5, 5, 5, 5)
@@ -648,14 +659,17 @@ class PatientPage(QWidget):
         delete_btn.clicked.connect(lambda _, p=patient: self.open_delete_dialog(p))
 
     def refresh_patient_page(self):
+        logger.info("Refreshing patient page")
         self.load_patients()
         self.load_patient_counts()
 
     def search_patients(self):
         search_text = self.search_input.text().strip()
+        logger.debug("Searching patients with text: %s", search_text)
         self.load_patients(search_text)
 
     def update_date_time(self):
+        logger.debug("Updating PatientPage date and time labels")
         current_datetime = QDateTime.currentDateTime()
         current_time = current_datetime.toString("hh:mm:ss AP")
         self.time_label.setText(f"🕒 {current_time}")
@@ -663,6 +677,7 @@ class PatientPage(QWidget):
         self.header_date_label.setText(f"📅 {current_date}")
 
     def reset_filters(self):
+        logger.info("Resetting patient search filters")
         self.selected_date = None
         self.search_input.blockSignals(True)
         self.search_input.clear()
@@ -675,6 +690,7 @@ class PatientPage(QWidget):
         self.load_patient_counts()
 
     def show_calendar_popup(self):
+        logger.info("Toggling patient calendar popup")
         if self.calendar_popup.isVisible():
             self.calendar_popup.close()
             self.active_dialog = None 
@@ -691,31 +707,18 @@ class PatientPage(QWidget):
             self.active_dialog = self.calendar_popup 
      
     def on_date_changed(self, date):
+        logger.info("Date changed in calendar: %s", date.toString("yyyy-MM-dd"))
         self.selected_date = date.toString("yyyy-MM-dd")
         self.load_patients()
     
-    # def show_patient_history(self, patient_id, patient_name, created_at, consultancy_fees):
-    #     self.close_active_dialog() 
-        
-    #     history = self.attendance_repository.get_patient_attendance_history(
-    #         Session.organization_id,
-    #         patient_id
-    #     )
-    #     print(history)
-    #     self.history_dialog.show_dialog(
-    #         patient_name,
-    #         history,
-    #         created_at,        
-    #         consultancy_fees  
-    #     )
-    #     self.active_dialog = self.history_dialog 
-
     def show_patient_history(self, patient_id, patient_name, created_at, consultancy_fees):
+        logger.info("Showing patient history for %s", patient_name)
         self.close_active_dialog()
 
         fresh_patient = self.patient_repository.patients.find_one({
             "_id": ObjectId(patient_id)
         })
+        logger.debug("Fetched fresh patient record for ID %s", patient_id)
 
         history = self.attendance_repository.get_patient_attendance_history(
             Session.organization_id,
@@ -734,6 +737,7 @@ class PatientPage(QWidget):
         self.active_dialog = self.history_dialog
 
     def show_role_popup(self, event):
+        logger.info("Showing role popup from PatientPage")
         from utils.role_switch import open_role_switch_popup, open_admin_menu_popup
         
         if getattr(self, 'current_role', 'Admin') == "Staff":
@@ -742,6 +746,7 @@ class PatientPage(QWidget):
             self.admin_popup_menu = open_admin_menu_popup(self, self.user_label, self.role_changed.emit)
 
     def on_calendar_date_selected(self, date):
+        logger.info("PatientPage calendar date selected: %s", date.toString('dd MMM yyyy'))
         formatted_date = date.toString('dd MMM yyyy')
         self.filter_date_btn.setText(f" {formatted_date}")
         self.filter_status_label.setText(f"Showing: Patients from {formatted_date}")
@@ -760,6 +765,7 @@ class PatientPage(QWidget):
         self.load_patient_counts()
 
     def load_patient_counts(self):
+        logger.info("Loading patient counts for PatientPage")
         organization_id = Session.organization_id
         attendance_date = self.selected_date if self.selected_date else datetime.now().strftime("%Y-%m-%d")
 
@@ -768,17 +774,19 @@ class PatientPage(QWidget):
         patients_on_date = self.patient_repository.get_patient_data(organization_id, selected_date=attendance_date)
         today_registered = len(patients_on_date)
 
+        logger.debug("Patient counts loaded total=%s visited_today=%s registered_today=%s", total_patients, today_visit, today_registered)
         self.total_patient_count.setText(str(total_patients))
         self.visited_today_count.setText(str(today_visit))
         self.registered_today_count.setText(str(today_registered))
        
     def close_active_dialog(self):
+        logger.debug("Closing active dialog if present")
         if self.active_dialog and self.active_dialog.isVisible():
             self.active_dialog.hide()
         self.active_dialog = None
 
     def close_all_popups(self):
-
+        logger.info("Closing all patient page popups")
         if self.calendar_popup.isVisible():
             self.calendar_popup.hide()
         if self.update_dialog.isVisible():
@@ -790,11 +798,13 @@ class PatientPage(QWidget):
         self.active_dialog = None
 
     def open_update_dialog(self, patient):
+        logger.info("Opening patient update dialog")
         self.close_active_dialog()              
         self.update_dialog.show_form(patient)    
         self.active_dialog = self.update_dialog
 
     def open_delete_dialog(self, patient):
+        logger.info("Opening patient delete dialog")
         self.close_active_dialog()
         self.delete_dialog.show_dialog(patient)
         self.active_dialog = self.delete_dialog

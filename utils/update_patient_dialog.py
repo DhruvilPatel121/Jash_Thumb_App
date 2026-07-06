@@ -1,3 +1,4 @@
+import logging
 from PyQt6.QtWidgets import (
     QFrame,
     QLabel,
@@ -22,12 +23,14 @@ from utils.verification import Verification
 from utils.session import Session
 from database.attendance_repository import AttendanceRepository
 
+logger = logging.getLogger(__name__)
 
 class UpdatePatientDialog(QFrame):
     patient_updated = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        logger.info("Initializing UpdatePatientDialog")
         self.patient_repository = PatientRepository()
         self.setup_ui()
         self.scanner = ScannerManager()
@@ -39,6 +42,7 @@ class UpdatePatientDialog(QFrame):
         self.esc_shortcut.activated.connect(self.cancel_update)
 
     def setup_ui(self):
+        logger.info("Setting up UI for UpdatePatientDialog")
         self.setObjectName("updateCard")
         self.hide()
         self.setFixedSize(600, 600)
@@ -178,16 +182,13 @@ class UpdatePatientDialog(QFrame):
 
         self.age_input.setValidator(age_validator)
         self.consultancy_input.setValidator(number_validator)
-        # self.payment_input.setValidator(number_validator)
         self.add_paid_days_input.setValidator(number_validator)
         self.consultancy_input.setMaxLength(6)
-        # self.payment_input.setMaxLength(6)
         self.add_paid_days_input.setMaxLength(4)
         self.mobile_input.setMaxLength(10)
         self.mobile_input.setValidator(number_validator)
 
         self.treatment_checkbox.setCursor(Qt.CursorShape.PointingHandCursor)
-        # self.treatment_checkbox.setChecked(False)
 
         self.gender_layout = QHBoxLayout()
         self.male_radio = QRadioButton("Male")
@@ -312,6 +313,7 @@ class UpdatePatientDialog(QFrame):
         return super().eventFilter(obj, event)
 
     def show_form(self, patient):
+        logger.info("Showing update form for patient id=%s", patient.get("_id"))
         self.patient_to_update = patient
         self.template_bytes = None
         self.name_input.setText(patient.get("name", ""))
@@ -350,10 +352,12 @@ class UpdatePatientDialog(QFrame):
         self.raise_()
 
     def cancel_update(self):
+        logger.info("Canceling patient update dialog")
         self.fingerprint_status.clear()
         self.hide()
 
     def save_updated_patient(self):
+        logger.info("Saving updated patient data for patient id=%s", self.patient_to_update.get("_id"))
         name = self.name_input.text().strip()
         mobile = self.mobile_input.text().strip()
         age = self.age_input.text().strip()
@@ -370,6 +374,7 @@ class UpdatePatientDialog(QFrame):
             department = "Ortho"
 
         if not name or not mobile or not gender:
+            logger.warning("Validation failed while saving updated patient id=%s", self.patient_to_update.get("_id"))
             ToastNotification.show_toast(
                 parent=self.parent(),
                 toast_type="warning",
@@ -381,6 +386,7 @@ class UpdatePatientDialog(QFrame):
         if self.template_bytes:
             existing_patient = self.is_fingerprint_already_registered()
             if existing_patient and existing_patient["_id"] != self.patient_to_update["_id"]:
+                logger.warning("Fingerprint already registered to another patient id=%s", existing_patient["_id"])
                 self.update_fingerprint_status("Fingerprint Already Registered", "#DC2626")
                 return
 
@@ -402,7 +408,7 @@ class UpdatePatientDialog(QFrame):
             )
 
             if success:
-
+                logger.info("Patient update successful for patient id=%s", self.patient_to_update.get("_id"))
                 self.attendance_repository.update_attendance_details(
                     str(self.patient_to_update["_id"]),
                     name,
@@ -413,12 +419,14 @@ class UpdatePatientDialog(QFrame):
                     problem,
                 )
                 if (not old_treatment_status) and treatment_start_today:
+                    logger.debug("Upgrading consulting to treatment for patient id=%s", self.patient_to_update.get("_id"))
                     self.attendance_repository.upgrade_consulting_to_treatment(
                         str(self.patient_to_update["_id"]),
                         payment_per_day,
                         add_paid_days,
                     )
                 elif old_treatment_status and (not treatment_start_today):
+                    logger.debug("Downgrading treatment to consulting for patient id=%s", self.patient_to_update.get("_id"))
                     self.attendance_repository.downgrade_treatment_to_consulting(
                         str(self.patient_to_update["_id"]),
                         payment_per_day,
@@ -434,12 +442,13 @@ class UpdatePatientDialog(QFrame):
                     message="Patient updated successfully.",
                     duration=3000,
                 )
-
                 self.fingerprint_status.clear()
             else:
+                logger.warning("Patient update returned False for patient id=%s", self.patient_to_update.get("_id"))
                 self.fingerprint_status.clear()
                 self.hide()
         except DatabaseConnectionError as error:
+            logger.error("Database connection error when saving updated patient", exc_info=True)
             ToastNotification.show_toast(self, "error", "Local database is not available.", str(error))
             return
 
@@ -455,10 +464,12 @@ class UpdatePatientDialog(QFrame):
         """)
 
     def is_fingerprint_already_registered(self):
+        logger.info("Checking if fingerprint is already registered")
         try:
             organization_id = Session.organization_id
             patients = self.patient_repository.get_all_by_organization(organization_id)
             if not self.verification.initialize_matching():
+                logger.warning("Verification matching initialization failed while checking fingerprint registration")
                 return None
             try:
                 for patient in patients:
@@ -468,14 +479,18 @@ class UpdatePatientDialog(QFrame):
                     stored_template = bytes(stored_template)
                     score = self.verification.match_template(self.template_bytes, stored_template)
                     if score >= 100:
+                        logger.info("Existing registered fingerprint found for patient id=%s score=%s", patient["_id"], score)
                         return patient
+                logger.debug("No existing fingerprint registration found")
                 return None
             finally:
                 self.verification.terminate_matching()
-        except Exception:
+        except Exception as error:
+            logger.error("Error checking fingerprint registration", exc_info=True)
             return None
 
     def capture_fingerprint(self):
+        logger.info("Starting fingerprint capture process")
         if not self.scanner.load_sdk():
             self.template_bytes = None
             self.update_fingerprint_status("SDK Load Failed", "#DC2626")
@@ -519,6 +534,7 @@ class UpdatePatientDialog(QFrame):
             self.scanner.terminate()
             return
 
+        logger.info("Fingerprint captured successfully")
         self.update_fingerprint_status("Fingerprint Captured ✓", "#16A34A")
         self.scanner.close_device()
         self.scanner.terminate()

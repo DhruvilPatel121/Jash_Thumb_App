@@ -1,13 +1,17 @@
+import logging
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QFrame)
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPixmap
 from utils.toast_notification import MessageManager
 from utils.resource_path import resource_path
 
+logger = logging.getLogger(__name__)
+
 class ForgotPasswordPage(QWidget):
 
     def __init__(self, db, main_window):
         super().__init__()
+        logger.info("Initializing ForgotPasswordPage")
         self.db = db
         self.main_window = main_window
         self.setup_ui()
@@ -138,12 +142,15 @@ class ForgotPasswordPage(QWidget):
         self.card_layout.addStretch()
 
     def open_login_window(self):
+        logger.info("Navigating back to login page from ForgotPasswordPage")
         self.main_window.show_login_page()
 
     def validate_username(self):
         username = self.username_input.text().strip()
+        logger.info("Validating forgot password username: %s", username)
 
         if not username:
+            logger.warning("Forgot password validation failed: empty email")
             MessageManager.show_message(
                 self.message_label,
                 "Please enter Email.",
@@ -156,6 +163,7 @@ class ForgotPasswordPage(QWidget):
         })
 
         if organization is None:
+            logger.warning("Forgot password email not found: %s", username)
             MessageManager.show_message(
                 self.message_label,
                 "Email not found.",
@@ -163,6 +171,7 @@ class ForgotPasswordPage(QWidget):
             )
             return
 
+        logger.info("Forgot password organization found for email: %s", username)
         MessageManager.show_message(
             self.message_label,
             "Organization found.",

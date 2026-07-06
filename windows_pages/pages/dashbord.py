@@ -1,4 +1,3 @@
-
 from PyQt6.QtWidgets import (QWidget,QLineEdit,QMessageBox,QHBoxLayout,QSizePolicy,QPushButton,QFrame, QLabel, QTableWidget, QTableWidgetItem,QHeaderView,QAbstractItemView,QDialog, QVBoxLayout, QCalendarWidget,QScrollArea,QGraphicsDropShadowEffect)
 from PyQt6.QtCore import Qt, QTimer, QDateTime,QDate,pyqtSignal
 from PyQt6.QtGui import QFont
@@ -15,10 +14,14 @@ from PyQt6.QtGui import QDesktopServices
 from PyQt6.QtCore import QUrl
 import hashlib
 import sys
+import logging
+
+logger = logging.getLogger(__name__)
 
 class ActionPopup(QWidget):
     def __init__(self, parent_widget, current_state):
         super().__init__()
+        logger.info("Initializing ActionPopup")
         self.parent_widget = parent_widget
         self.setWindowFlags(Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint | Qt.WindowType.NoDropShadowWindowHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
@@ -26,6 +29,7 @@ class ActionPopup(QWidget):
         self.setup_ui()
         
     def setup_ui(self):
+        logger.info("Setting up UI for ActionPopup")
         self.frame = QFrame(self)
         self.frame.setStyleSheet("""
             QFrame {
@@ -75,6 +79,7 @@ class ActionPopup(QWidget):
         main_layout.addWidget(self.frame)
 
     def select_option(self, state):
+        logger.debug("ActionPopup select_option called with state=%s", state)
         self.parent_widget.set_state(state)
         self.close()
 
@@ -85,10 +90,12 @@ class ActionCellWidget(QWidget):
 
     def __init__(self, current_state=None):
         super().__init__()
+        logger.info("Initializing ActionCellWidget")
         self.state = current_state
         self.setup_ui()
 
     def setup_ui(self):
+        logger.debug("Setting up UI for ActionCellWidget")
         self.layout = QHBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -103,6 +110,7 @@ class ActionCellWidget(QWidget):
         self.update_ui()
 
     def show_options(self):
+        logger.debug("ActionCellWidget show_options called")
         self.opened.emit(self) 
         self.popup = ActionPopup(self, self.state)
         self.popup.adjustSize()
@@ -116,11 +124,13 @@ class ActionCellWidget(QWidget):
         self.popup.show()
 
     def set_state(self, state):
+        logger.debug("ActionCellWidget state changed to %s", state)
         self.state = state
         self.update_ui()
         self.state_changed.emit(state)
 
     def set_editable(self, editable):
+        logger.debug("ActionCellWidget set_editable=%s", editable)
         self.main_btn.setEnabled(editable)
 
         if editable:
@@ -139,11 +149,13 @@ class ActionCellWidget(QWidget):
             self.main_btn.setText("⬜")
             self.main_btn.setStyleSheet("background-color: #F1F5F9; color: #94A3B8; border-radius: 6px; font-size: 18px; border: 1px solid #CBD5E1;")
 
+
 class DashboardPage(QWidget):
     role_changed = pyqtSignal(str)
 
     def __init__(self, db=None):
         super().__init__()
+        logger.info("Initializing DashboardPage")
         self.current_logs = []
         self.active_action_widget = None
         self.setup_ui()
@@ -162,6 +174,7 @@ class DashboardPage(QWidget):
         self.selected_date = datetime.now().strftime("%Y-%m-%d")
 
     def setup_ui(self):
+        logger.info("Setting up UI for DashboardPage")
         self.main_layout = QVBoxLayout()
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.main_layout.setSpacing(0)
@@ -496,8 +509,10 @@ class DashboardPage(QWidget):
 
         self.delete_attendance_dialog = DeleteAttendanceDialog(self)
         self.delete_attendance_dialog.attendance_deleted.connect(self.load_today_logs)
+        logger.info("DashboardPage UI setup completed")
 
     def create_styled_table(self):
+        logger.info("Creating styled table widget")
         # table = CustomTableWidget()
         table = QTableWidget()
         table.setWordWrap(True)
@@ -619,6 +634,8 @@ class DashboardPage(QWidget):
     
 
     def load_today_logs(self, search_text=None):
+        logger.info("Loading today's attendance logs")
+        logger.debug("Loading today logs with search_text=%s selected_date=%s", search_text, self.selected_date)
         attendance_date = self.selected_date
         organization_id = Session.organization_id
         
@@ -626,6 +643,7 @@ class DashboardPage(QWidget):
         self.refresh_tables_from_cache()
 
     def refresh_tables_from_cache(self):
+        logger.info("Refreshing tables from cached attendance logs")
         neuro_logs = []
         ortho_logs = []
 
@@ -648,6 +666,8 @@ class DashboardPage(QWidget):
         self.render_department_table(self.cardio_table, ortho_logs)
 
     def render_department_table(self, target_table, logs):
+        logger.info("Rendering department table")
+        logger.debug("Rendering department table with %s logs", len(logs))
         target_table.setRowCount(0)
 
         pending_logs = []
@@ -678,6 +698,7 @@ class DashboardPage(QWidget):
             paid_days = int(record.get("paid_days", 0) or 0)
             used_days = int(record.get("used_days", 0) or 0)
             is_payment_due = used_days > paid_days
+            logger.debug("Row %s payment status paid_days=%s used_days=%s is_payment_due=%s", row_idx, paid_days, used_days, is_payment_due)
             print("dashboard",is_payment_due)
             
             # FIXED: Make sure paid_days is greater than 0 to avoid 0 == 0 bug
@@ -701,6 +722,7 @@ class DashboardPage(QWidget):
                         "%H:%M:%S"
                     ).strftime("%I:%M:%S %p")
                 except ValueError:
+                    logger.error("Invalid check_in_time format: %s", check_in_time, exc_info=True)
                     pass
 
             items = [
@@ -864,16 +886,20 @@ class DashboardPage(QWidget):
     
 
     def on_action_widget_opened(self, widget):
+        logger.debug("Action widget opened")
         try:
             if self.active_action_widget and self.active_action_widget != widget:
                 self.active_action_widget.update_ui()
         except RuntimeError:
+            logger.error("Error updating previous action widget", exc_info=True)
             self.active_action_widget = None
         self.active_action_widget = widget
 
     def update_patient_state(self, attendance_id, field_name, new_state):
+        logger.info("Updating patient action state for %s field=%s", attendance_id, field_name)
         today = datetime.now().strftime("%Y-%m-%d")
         if self.selected_date != today:
+            logger.debug("Selected date %s does not match today; skipping state update", self.selected_date)
             return
         
         self.attendance_worker.attendance_repository.update_action_status(
@@ -886,9 +912,11 @@ class DashboardPage(QWidget):
         self.load_today_logs()
 
     def load_initial_data(self):
+        logger.info("Loading initial data for DashboardPage")
         self.load_today_logs()
 
     def update_date_time(self):
+        logger.debug("Updating date and time labels in DashboardPage")
         current_datetime = QDateTime.currentDateTime()
         current_date = current_datetime.toString("dd MMM yyyy")
         current_time = current_datetime.toString("hh:mm:ss AP")
@@ -896,18 +924,21 @@ class DashboardPage(QWidget):
         self.header_date_label.setText(f"📅 {current_date}")
 
     def on_scanner_connection_failed(self, message):
+        logger.warning("Scanner connection failed: %s", message)
         ToastNotification.show_toast(
             parent=self, toast_type="error", title="Scanner Not Found", 
             message="Please check the USB connection and try again.", duration=5000 
         )
 
     def start_scanner(self):
+        logger.info("Start scanner button clicked, scanner_running=%s", self.scanner_running)
         if not self.scanner_running:
             self.attendance_worker.start_attendance()
         else:
             self.attendance_worker.stop_attendance()
 
     def on_scanner_connected(self):
+        logger.info("Scanner connected")
         self.scanner_running = True
         self.scanner_btn.setText("Stop Scanner")
         ToastNotification.show_toast(
@@ -916,6 +947,7 @@ class DashboardPage(QWidget):
         )
         
     def on_scanner_disconnected(self):
+        logger.info("Scanner disconnected")
         self.scanner_running = False
         self.scanner_btn.setText("Start Scanner")
         ToastNotification.show_toast(
@@ -924,10 +956,12 @@ class DashboardPage(QWidget):
         )
 
     def stop_scanner_on_page_change(self):
+        logger.debug("Stopping active scanner on page change if running")
         if self.scanner_running:
             self.attendance_worker.stop_attendance()
 
     def on_attendance_marked(self, patient):
+        logger.info("Attendance marked for patient: %s", patient.get("name"))
         from database.attendance_repository import AttendanceRepository
         attendance_repo = AttendanceRepository()
         patient_att = attendance_repo.get_attendance_by_patient_id(patient.get('_id'))
@@ -949,12 +983,14 @@ class DashboardPage(QWidget):
         self.load_today_logs()
 
     def on_already_taken(self, patient_name):
+        logger.info("Attendance already taken for patient: %s", patient_name)
         ToastNotification.show_toast(
             parent=self, toast_type="warning", title="Entry Already Recorded",
             message=f"{patient_name} has already checked in today.", duration=4000
         )
 
     def on_patient_not_found(self):
+        logger.info("Patient not found by scanner")
         ToastNotification.show_toast(
             parent=self, toast_type="error", title="Patient Not Found",
             message="This fingerprint is not registered in the system.", duration=4000
@@ -962,10 +998,12 @@ class DashboardPage(QWidget):
 
     def search_attendance_logs(self):
         search_text = (self.search_input.text().strip())
+        logger.debug("Searching attendance logs for: %s", search_text)
         self.load_today_logs(search_text)
 
 
     def reset_filters(self):
+        logger.info("Resetting dashboard filters and loading today's list")
         self.selected_date = datetime.now().strftime("%Y-%m-%d") 
         
         self.search_input.blockSignals(True)
@@ -977,6 +1015,7 @@ class DashboardPage(QWidget):
         self.load_today_logs()
 
     def show_calendar_popup(self):
+        logger.debug("Toggling calendar popup visibility")
         if self.calendar_popup.isVisible():
             self.calendar_popup.close()
         else:
@@ -988,6 +1027,7 @@ class DashboardPage(QWidget):
             self.calendar_popup.show()
 
     def on_calendar_date_selected(self, date):
+        logger.info("Calendar date selected: %s", date.toString('dd MMM yyyy'))
         formatted_date = date.toString('dd MMM yyyy')
         self.filter_date_btn.setText(f"{formatted_date}")
         self.calendar_popup.close()
@@ -1000,6 +1040,7 @@ class DashboardPage(QWidget):
     
 
     def show_role_popup(self, event):
+        logger.info("Showing role popup from DashboardPage")
         from utils.role_switch import open_role_switch_popup, open_admin_menu_popup
         
         if getattr(self, 'current_role', 'Admin') == "Staff":
@@ -1008,6 +1049,7 @@ class DashboardPage(QWidget):
             self.admin_popup_menu = open_admin_menu_popup(self, self.user_label, self.role_changed.emit)
 
     def close_all_popups(self):
+        logger.info("Closing all active popups in DashboardPage")
         if self.calendar_popup.isVisible():
             self.calendar_popup.hide()
         if self.delete_attendance_dialog.isVisible():
@@ -1019,42 +1061,12 @@ class DashboardPage(QWidget):
         self.active_action_widget = None
 
     def on_role_switched(self, role):
+        logger.info("Role switched to %s", role)
         self.role_changed.emit(role)
 
 
     def open_manual_attendance_dialog(self):
+        logger.info("Opening manual attendance dialog")
         dialog = ManualAttendanceDialog(self, self.attendance_worker)
         dialog.exec()
 
-    # def check_software_expiry(self):
-    #     try:
-    #         # Database madhun organization cha data ghya
-    #         org_data = self.db.organizations.find_one({"_id": Session.organization_id})
-            
-    #         # Jar database madhye 'valid_upto' field asel tarach check kara
-    #         if org_data and "valid_upto" in org_data:
-    #             expiry_date_str = org_data["valid_upto"]
-    #             expiry_date = datetime.strptime(expiry_date_str, "%Y-%m-%d")
-    #             current_date = datetime.now()
-                
-    #             # Divsancha farak (difference) kadha
-    #             days_left = (expiry_date - current_date).days
-                
-    #             if days_left < 0:
-    #                 # Jar divas 0 kiva tya peksha kami asel tar software band kara
-    #                 QMessageBox.critical(
-    #                     self, 
-    #                     "Software Expired", 
-    #                     "Tumche software license expire jhale aahe. Krupaya Shivvilon Solution shi sampark sadha."
-    #                 )
-    #                 sys.exit() # He line software tithech band karel
-                    
-    #             elif days_left <= 15:
-    #                 # 15 divas baki asel tar warning dya
-    #                 QMessageBox.warning(
-    #                     self, 
-    #                     "License Expiring Soon", 
-    #                     f"Tumche license {days_left} divsat expire hoil. Velevar renew kara."
-    #                 )
-    #     except Exception as e:
-    #         print(f"Expiry check error: {e}")

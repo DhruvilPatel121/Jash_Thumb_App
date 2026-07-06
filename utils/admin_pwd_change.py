@@ -1,11 +1,15 @@
 import hashlib
+import logging
 from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QHBoxLayout
 from PyQt6.QtCore import Qt
 from database.organization_repository import OrganizationRepository
 from utils.session import Session
 from utils.toast_notification import ToastNotification
 
+logger = logging.getLogger(__name__)
+
 def open_admin_password_dialog(parent):
+    logger.info("Opening admin password change dialog")
     dialog = QDialog(parent)
     dialog.setWindowTitle("Change Admin Password")
     dialog.setFixedSize(380, 400)
@@ -89,40 +93,54 @@ def open_admin_password_dialog(parent):
 
     # Backend Logic and Validation
     def update_password_logic():
+        logger.info("Admin password update logic started")
         error_label.setText("")
         old_pwd = old_pwd_input.text().strip()
         new_pwd = new_pwd_input.text().strip()
         confirm_pwd = confirm_pwd_input.text().strip()
 
         if not old_pwd or not new_pwd or not confirm_pwd:
+            logger.warning("Admin password update failed: missing required fields")
             error_label.setText("All fields are required.")
             return
         
         if new_pwd != confirm_pwd:
+            logger.warning("Admin password update failed: new password and confirm password mismatch")
             error_label.setText("New passwords do not match.")
             return
 
         repository = OrganizationRepository()
         org_data = repository.get_by_id(Session.organization_id)
         
+        if org_data is None:
+            logger.error("Admin password update failed: organization record not found for organization_id=%s", Session.organization_id)
+            error_label.setText("Database error. Could not update.")
+            return
+
         hashed_old = hashlib.sha256(old_pwd.encode("utf-8")).hexdigest()
-        
+        logger.debug("Old password hashed for comparison")
+
         if org_data.get("password") != hashed_old:
+            logger.warning("Admin password update failed: incorrect old password for organization_id=%s", Session.organization_id)
             error_label.setText("Incorrect old password.")
             return
 
         hashed_new = hashlib.sha256(new_pwd.encode("utf-8")).hexdigest()
-        
+        logger.debug("New password hashed for saving")
+
         if hashed_old == hashed_new:
+            logger.warning("Admin password update failed: new password same as old password for organization_id=%s", Session.organization_id)
             error_label.setText("New password cannot be the same as the old password.")
             return
         
         success = repository.update_admin_password(Session.organization_id, hashed_new)
         
         if success:
+            logger.info("Admin password updated successfully for organization_id=%s", Session.organization_id)
             ToastNotification.show_toast(parent, "success", "Success", "Admin password updated successfully.", 3000)
             dialog.accept() 
         else:
+            logger.error("Admin password update failed during repository update for organization_id=%s", Session.organization_id)
             error_label.setText("Database error. Could not update.")
 
     btn.clicked.connect(update_password_logic)

@@ -1,11 +1,14 @@
-from PyQt6.QtWidgets import (QWidget, QFrame, QLabel, QPushButton, QVBoxLayout,QGridLayout, QGraphicsDropShadowEffect)
+import logging
+from PyQt6.QtWidgets import (QWidget, QFrame, QLabel, QPushButton, QVBoxLayout, QGridLayout, QGraphicsDropShadowEffect)
 from PyQt6.QtCore import (Qt, QPropertyAnimation, QEasingCurve, QTimer, QSize, pyqtProperty)
 from PyQt6.QtGui import QColor, QFont
 
+logger = logging.getLogger(__name__)
 
 class MessageManager:
     @staticmethod
     def show_message(label, message, message_type="error", duration=5000):
+        logger.info("Showing toast message type=%s message=%s", message_type, message)
         styles = {
             "error": {"bg": "#2B1D1D", "border": "#FF4D4F", "text": "#FF7875", "icon": "❌"},
             "success": {"bg": "#1F2E1F", "border": "#52C41A", "text": "#95DE64", "icon": "✅"},
@@ -22,6 +25,7 @@ class MessageManager:
 
     @staticmethod
     def clear_message(label):
+        logger.debug("Clearing toast message")
         label.setText(" ")
         label.setStyleSheet(
             "QLabel{background: transparent; border: none; padding: 0px;}"
@@ -38,12 +42,14 @@ class ToastNotification(QWidget):
 
     @classmethod
     def show_toast(cls, parent, toast_type, title, message, duration=None):
+        logger.info("Showing toast notification type=%s title=%s", toast_type, title)
         alert = cls(parent, toast_type, title, message, duration)
         alert.show()
         return alert
 
     def __init__(self, parent, toast_type, title, message, duration):
         super().__init__(parent)
+        logger.debug("Initializing ToastNotification widget")
         self.duration = duration
         style = self.STYLES.get(toast_type, self.STYLES["info"])
 
@@ -54,7 +60,6 @@ class ToastNotification(QWidget):
             }
         """)
 
-        # MAIN CARD
         self.card = QFrame(self)
         self.card.setFixedSize(450, 320)
         self.card.setStyleSheet(f"""
@@ -72,13 +77,11 @@ class ToastNotification(QWidget):
         self.card.setGraphicsEffect(shadow)
         self.card.move((self.width() - self.card.width()) // 2, (self.height() - self.card.height()) // 2)
 
-        # CARD LAYOUT
         layout = QVBoxLayout(self.card)
         layout.setContentsMargins(30, 25, 30, 25)
         layout.setSpacing(10)
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        # ICON
         self.icon_label = QLabel(style["icon"])
         self.icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.icon_label.setStyleSheet(f"""
@@ -92,7 +95,6 @@ class ToastNotification(QWidget):
         """)
         layout.addWidget(self.icon_label)
 
-        # TITLE
         self.title_label = QLabel(title)
         self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.title_label.setWordWrap(True)
@@ -108,7 +110,6 @@ class ToastNotification(QWidget):
         """)
         layout.addWidget(self.title_label)
 
-        # MESSAGE
         self.message_label = QLabel(message)
         self.message_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.message_label.setWordWrap(True)
@@ -124,7 +125,6 @@ class ToastNotification(QWidget):
         """)
         layout.addWidget(self.message_label)
 
-        # BUTTON
         self.ok_btn = QPushButton("Got It")
         self.ok_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.ok_btn.setFixedSize(140, 45)
@@ -148,7 +148,6 @@ class ToastNotification(QWidget):
         self.ok_btn.clicked.connect(self.close_alert)
         layout.addWidget(self.ok_btn, alignment=Qt.AlignmentFlag.AlignCenter)
 
-        # SHOW ANIMATION
         self.setWindowOpacity(0)
         self.fade_in = QPropertyAnimation(self, b"windowOpacity")
         self.fade_in.setDuration(250)
@@ -157,13 +156,13 @@ class ToastNotification(QWidget):
         self.fade_in.setEasingCurve(QEasingCurve.Type.OutCubic)
         self.fade_in.start()
 
-        # AUTO CLOSE
         if duration:
             QTimer.singleShot(duration, self.close_alert)
         else:
             QTimer.singleShot(5000, self.close_alert)
 
     def close_alert(self):
+        logger.debug("Closing ToastNotification alert")
         self.fade_out = QPropertyAnimation(self, b"windowOpacity")
         self.fade_out.setDuration(200)
         self.fade_out.setStartValue(1)
@@ -205,14 +204,12 @@ from PyQt6.QtCore import *
 from PyQt6.QtGui import *
 
 class SuccessIcon(QWidget):
-    # Standard GPay style checkmark animation
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setFixedSize(70, 70)
         self.icon_size = 0
         self.setStyleSheet("background: transparent;")
 
-    # Standard Python method - NO pyqtProperty needed!
     def set_icon_size(self, size):
         self.icon_size = size
         self.update()
@@ -221,18 +218,15 @@ class SuccessIcon(QWidget):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         
-        # Draw background circle
         painter.setBrush(QColor("#16A34A"))
         painter.setPen(Qt.PenStyle.NoPen)
         circle_rect = QRect(0, 0, self.icon_size, self.icon_size)
         circle_rect.moveCenter(self.rect().center())
         painter.drawEllipse(circle_rect)
 
-        # Draw checkmark when animation is advanced
         if self.icon_size > 50:
             pen = QPen(Qt.GlobalColor.white)
             pen.setWidth(4)
-            # Fixes the crash error
             pen.setCapStyle(Qt.PenCapStyle.RoundCap)
             pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
             painter.setPen(pen)
@@ -245,7 +239,7 @@ class SuccessIcon(QWidget):
 
 class PatientSuccessModal(QWidget):
     @classmethod
-    def show_modal(cls, parent, name, age, gender, department, problem, used_days, paid_days, serial_no=None, duration=5000 ):
+    def show_modal(cls, parent, name, age, gender, department, problem, used_days, paid_days, serial_no=None, duration=5000):
         modal = cls(parent, name, age, gender, department, problem, used_days, paid_days, serial_no, duration)
         modal.show()
 
@@ -257,11 +251,6 @@ class PatientSuccessModal(QWidget):
         used_days = int(used_days)
         last_day = paid_days - used_days 
         print("toast last days :", last_day , "payment due" , is_payment_due)
-        # if paid_days == used_days:
-        #         last_day = True
-        # else:
-        #         last_day = False
-        # print(last_day)
         self.duration = duration
         self.resize(parent.width(), parent.height())
         self.setStyleSheet("""
@@ -270,9 +259,8 @@ class PatientSuccessModal(QWidget):
             }
         """)
 
-        # MAIN CARD
         self.card = QFrame(self)
-        self.card.setFixedSize(800, 580) # Increased height slightly to fit the box perfectly
+        self.card.setFixedSize(800, 580)
         self.card.setStyleSheet("""
             QFrame{
                 background-color: white;
@@ -288,19 +276,16 @@ class PatientSuccessModal(QWidget):
         self.card.setGraphicsEffect(shadow)
         self.card.move((self.width() - self.card.width()) // 2, (self.height() - self.card.height()) // 2)
 
-        # CARD LAYOUT
         layout = QVBoxLayout(self.card)
         layout.setContentsMargins(40, 35, 40, 35)
         layout.setSpacing(15)
 
-        # SUCCESS ANIMATION ICON
         icon_layout = QVBoxLayout()
         icon_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.success_icon = SuccessIcon()
         icon_layout.addWidget(self.success_icon)
         layout.addLayout(icon_layout)
 
-        # TITLE
         title = QLabel("Patient Check-In Successful")
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         title.setStyleSheet("""
@@ -395,7 +380,7 @@ class PatientSuccessModal(QWidget):
             serial_layout.addStretch()
 
             layout.addWidget(serial_box)
-        # INFO CARD
+
         info_card = QFrame()
         info_card.setStyleSheet("""
             QFrame{
@@ -436,7 +421,6 @@ class PatientSuccessModal(QWidget):
             grid.addWidget(label_widget, row, 0)
             grid.addWidget(value_widget, row, 1)
 
-        # Add rest of fields directly (Serial No is already handled above)
         add_row(0, "Name", name)
         add_row(1, "Age", age)
         add_row(2, "Gender", gender)
@@ -457,7 +441,6 @@ class PatientSuccessModal(QWidget):
         """)
         layout.addWidget(footer)
 
-        # SHOW ANIMATION
         self.setWindowOpacity(0)
         self.show_anim = QPropertyAnimation(self, b"windowOpacity")
         self.show_anim.setDuration(250)
@@ -465,7 +448,6 @@ class PatientSuccessModal(QWidget):
         self.show_anim.setEndValue(1)
         self.show_anim.setEasingCurve(QEasingCurve.Type.OutCubic)
 
-        # GPay Style Icon Pop-up Animation (Using QVariantAnimation)
         self.icon_anim = QVariantAnimation(self)
         self.icon_anim.setDuration(600)
         self.icon_anim.setStartValue(0)
@@ -476,7 +458,6 @@ class PatientSuccessModal(QWidget):
         self.show_anim.start()
         QTimer.singleShot(100, self.icon_anim.start)
 
-        # AUTO CLOSE
         QTimer.singleShot(self.duration, self.close_modal)
 
     def close_modal(self):

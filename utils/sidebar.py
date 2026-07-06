@@ -1,9 +1,12 @@
+import logging
 from PyQt6.QtWidgets import QFrame, QVBoxLayout, QPushButton, QGraphicsDropShadowEffect
 from PyQt6.QtCore import pyqtSignal, QSize, Qt, QPropertyAnimation, QRect
 from PyQt6.QtGui import QIcon, QColor
 
 # Tamari banaveli resource_path file ahiya import kari chhe
 from utils.resource_path import resource_path 
+
+logger = logging.getLogger(__name__)
 
 class Sidebar(QFrame):
     dashboard_clicked = pyqtSignal()
@@ -14,10 +17,12 @@ class Sidebar(QFrame):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        logger.info("Initializing Sidebar")
         self.is_open = False
         self.setup_ui()
 
     def setup_ui(self):
+        logger.info("Setting up UI for Sidebar")
         self.setFixedWidth(240)
         self.setStyleSheet("""
             QFrame {
@@ -37,9 +42,6 @@ class Sidebar(QFrame):
         layout.setSpacing(20)
         self.setLayout(layout)
 
-        # ==========================================
-        # Ahiya resource_path add karyu chhe
-        # ==========================================
         self.dashboard_btn = QPushButton("Dashboard")
         self.dashboard_btn.setIcon(QIcon(resource_path("assets/dashboard.png")))
         self.dashboard_btn.setIconSize(QSize(24, 24))
@@ -52,8 +54,6 @@ class Sidebar(QFrame):
         self.patient_btn.setIcon(QIcon(resource_path("assets/list.png")))
         self.patient_btn.setIconSize(QSize(24, 24))
 
-
-        # Styles
         self.normal_style = """
             QPushButton {
                 background-color: transparent;
@@ -87,11 +87,9 @@ class Sidebar(QFrame):
             }
         """
 
-
         for btn in [self.dashboard_btn, self.registration_btn, self.patient_btn]:
             btn.setStyleSheet(self.normal_style)
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
-
 
         layout.addWidget(self.dashboard_btn)
         layout.addWidget(self.registration_btn)
@@ -108,6 +106,7 @@ class Sidebar(QFrame):
         self.animation.setDuration(250) 
 
     def menu_clicked(self, page):
+        logger.debug("Sidebar menu_clicked called with page=%s", page)
         self.close_sidebar()
         if page == "dashboard":
             self.dashboard_clicked.emit()
@@ -117,12 +116,14 @@ class Sidebar(QFrame):
             self.patient_clicked.emit()
 
     def toggle_sidebar(self):
+        logger.info("Toggling sidebar state from is_open=%s", self.is_open)
         if self.is_open:
             self.close_sidebar()
         else:
             self.open_sidebar()
 
     def open_sidebar(self):
+        logger.info("Opening sidebar")
         parent_height = self.parent().height() if self.parent() else 800
         self.animation.setStartValue(QRect(-240, 0, 240, parent_height))
         self.animation.setEndValue(QRect(0, 0, 240, parent_height))
@@ -132,6 +133,7 @@ class Sidebar(QFrame):
         self.state_changed.emit(True) 
 
     def close_sidebar(self):
+        logger.info("Closing sidebar")
         parent_height = self.parent().height() if self.parent() else 800
         self.animation.setStartValue(QRect(0, 0, 240, parent_height))
         self.animation.setEndValue(QRect(-240, 0, 240, parent_height))
@@ -140,6 +142,7 @@ class Sidebar(QFrame):
         self.state_changed.emit(False) 
 
     def set_active_page(self, page_name):
+        logger.debug("Setting active sidebar page=%s", page_name)
         self.dashboard_btn.setStyleSheet(self.normal_style)
         self.registration_btn.setStyleSheet(self.normal_style)
         self.patient_btn.setStyleSheet(self.normal_style)

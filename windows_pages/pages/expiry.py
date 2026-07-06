@@ -7,21 +7,26 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, QDate
 from PyQt6.QtGui import QFont, QColor
+import logging
 
+logger = logging.getLogger(__name__)
 
 class LicenseExpiredPage(QWidget):
 
     def __init__(self):
         super().__init__()
+        logger.info("Initializing LicenseExpiredPage")
         self.setup_ui()
 
     def setup_ui(self):
+        logger.info("Setting up UI for LicenseExpiredPage")
         # 1. Main Background
         self.setStyleSheet("""
         QWidget {
             background-color: #F8FAFC;
         }
         """)
+        logger.debug("Applied main background stylesheet")
 
         self.main_layout = QVBoxLayout(self)
         self.main_layout.setContentsMargins(0, 0, 0, 0)
@@ -39,6 +44,7 @@ class LicenseExpiredPage(QWidget):
         }
         """)
         self.main_layout.addWidget(self.header)
+        logger.debug("Header frame created and added to layout")
 
         # --------------------------------------------------
         # Center Area Container
@@ -62,6 +68,7 @@ class LicenseExpiredPage(QWidget):
 
         }
         """)
+        logger.debug("Expiry card created with styling")
 
         # Add a subtle drop shadow to the card for depth
         shadow = QGraphicsDropShadowEffect()
@@ -69,6 +76,7 @@ class LicenseExpiredPage(QWidget):
         shadow.setColor(QColor(0, 0, 0, 15))
         shadow.setOffset(0, 8)
         self.card.setGraphicsEffect(shadow)
+        logger.debug("Drop shadow effect applied to expiry card")
 
         # Card Layout
         self.card_layout = QVBoxLayout(self.card)
@@ -81,6 +89,7 @@ class LicenseExpiredPage(QWidget):
         self.icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.icon.setStyleSheet("color: #EF4444; font-size: 65px; font-weight: bold; background-color: transparent; border: none;")
         self.card_layout.addWidget(self.icon)
+        logger.debug("Added expiry status icon to card")
 
         # 2. Main Status Heading
         self.status_title = QLabel("License Expired")
@@ -122,9 +131,11 @@ class LicenseExpiredPage(QWidget):
         }
         """)
         self.card_layout.addWidget(self.contact_msg)
+        logger.debug("Added expiry instructions and contact message")
 
         # Add the completed card to the center container
         self.body_layout.addWidget(self.card)
 
         # Add the center container to the main window layout
         self.main_layout.addWidget(self.body_container)
+        logger.info("LicenseExpiredPage UI setup completed")

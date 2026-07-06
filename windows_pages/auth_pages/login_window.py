@@ -1,3 +1,4 @@
+import logging
 from PyQt6.QtWidgets import (QVBoxLayout, QLabel, QLineEdit, QPushButton, QWidget, QFrame, QHBoxLayout)
 from PyQt6.QtCore import Qt,QTimer
 from PyQt6.QtGui import QAction, QIcon, QPixmap
@@ -8,9 +9,12 @@ import hashlib
 from utils.resource_path import resource_path
 from PyQt6.QtWidgets import QApplication
 
+logger = logging.getLogger(__name__)
+
 class LoginPage(QWidget):
     def __init__(self, db, main_window):
         super().__init__()
+        logger.info("Initializing LoginPage")
         self.db = db
         self.main_window = main_window
         self.organization_repository = OrganizationRepository()
@@ -138,16 +142,20 @@ class LoginPage(QWidget):
         
     def showEvent(self, event):
         super().showEvent(event)
+        logger.debug("LoginPage showEvent triggered")
         QTimer.singleShot(0, self.username_input.setFocus)
 
     def toggle_password_visibility(self):
+        logger.debug("Toggling password visibility in LoginPage")
         if self.password_input.echoMode() == QLineEdit.EchoMode.Password:
             self.password_input.setEchoMode(QLineEdit.EchoMode.Normal)
             self.eye_action.setIcon(QIcon(resource_path("assets/eye_off.png")))
         else:
             self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
             self.eye_action.setIcon(QIcon(resource_path("assets/eye.png")))
+
     def reset_login_state(self):
+        logger.debug("Resetting login state in LoginPage")
         self.username_input.setEnabled(True)
         self.password_input.setEnabled(True)
         self.login_button.setText("LOGIN")
@@ -156,16 +164,20 @@ class LoginPage(QWidget):
     def validate_login(self):
         username = self.username_input.text().strip()
         raw_password = self.password_input.text().strip()
+        logger.info("Validating login for username: %s", username)
 
         if not username and not raw_password:
+            logger.warning("Login validation failed: missing email and password")
             MessageManager.show_message(self.message_label, "Please enter Email and password.", "warning")
             return
 
         if not username:
+            logger.warning("Login validation failed: missing email")
             MessageManager.show_message(self.message_label, "Please enter Email.", "warning")
             return
 
         if not raw_password:
+            logger.warning("Login validation failed: missing password")
             MessageManager.show_message(self.message_label, "Please enter password.", "warning")
             return
         self.login_button.setText("LOGGING IN...")
@@ -178,6 +190,7 @@ class LoginPage(QWidget):
         
         if organization:
             if organization.get("is_locked", False) == True:
+                logger.warning("Login attempt blocked: account locked for %s", username)
                 self.reset_login_state()
                 MessageManager.show_message(
                     self.message_label, 
@@ -186,7 +199,9 @@ class LoginPage(QWidget):
                 )
                 return
             Session.login(organization["_id"], organization["email"])
+            logger.info("Login successful for %s", username)
             self.main_window.show_app_core()
         else:
+            logger.warning("Login failed for %s", username)
             self.reset_login_state()
             MessageManager.show_message(self.message_label, "Invalid Email or password.", "error")

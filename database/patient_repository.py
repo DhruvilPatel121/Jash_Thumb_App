@@ -4,9 +4,11 @@ from datetime import datetime, timedelta
 import logging
 from utils.db_executor import DBExecutor
 
+logger = logging.getLogger(__name__)
 
 class PatientRepository:
     def __init__(self):
+        logger.info("Initializing PatientRepository")
         self.db = MongoDBConnection()
         self.patients = self.db.patients
         self.deleted_patients = self.db.deleted_patients
@@ -29,6 +31,16 @@ class PatientRepository:
         # only_consulting,
         fingerprint_template
     ):
+        logger.info("Creating patient record")
+        logger.debug(
+            "Patient create payload organization_id=%s name=%s mobile=%s age=%s gender=%s department=%s",
+            organization_id,
+            name,
+            mobile,
+            age,
+            gender,
+            department,
+        )
         serial_no = (
             self.patients.count_documents({"organization_id": organization_id}) + 1
         )
@@ -53,20 +65,25 @@ class PatientRepository:
             }
             return self.executor.execute("INSERT", "patients", patient)
         except Exception as error:
-            logging.error(f"Create Patient Error: {error}", exc_info=True)
+            logger.error(f"Create Patient Error: {error}", exc_info=True)
             return None
-        
-    
-        
+
     def get_all_by_organization(self, organization_id):
+        logger.info("Fetching all patients for organization_id=%s", organization_id)
         try:
             query = {"organization_id": organization_id}
             return list(self.patients.find(query))
         except Exception as error:
-            logging.error(f"Patient fatch from database Error: {error}", exc_info=True)
+            logger.error(f"Patient fetch from database Error: {error}", exc_info=True)
             return []
 
     def get_patient_data(self, organization_id, selected_date=None, search_text=None):
+        logger.info(
+            "Fetching patient data organization_id=%s selected_date=%s search_text=%s",
+            organization_id,
+            selected_date,
+            search_text,
+        )
         try:
             query = {"organization_id": organization_id}
 
@@ -89,13 +106,15 @@ class PatientRepository:
             return list(self.patients.find(query))
 
         except Exception as error:
-            logging.error(f"Patient fetch from database Error: {error}", exc_info=True)
+            logger.error(f"Patient fetch from database Error: {error}", exc_info=True)
             return []
 
     def count_patients(self, organization_id):
+        logger.info("Counting patients for organization_id=%s", organization_id)
         try:
             return self.patients.count_documents({"organization_id": organization_id})
-        except Exception:
+        except Exception as error:
+            logger.error(f"Count patients error: {error}", exc_info=True)
             return 0
 
     @check_connection
@@ -114,6 +133,15 @@ class PatientRepository:
         fingerprint_template=None,
         treatment_start_from_today=False
     ):
+        logger.info("Updating patient record %s", patient_id)
+        logger.debug(
+            "Update patient payload name=%s mobile=%s age=%s gender=%s department=%s",
+            name,
+            mobile,
+            age,
+            gender,
+            department,
+        )
         try:
             update_data = {
                 "name": name,
@@ -137,14 +165,16 @@ class PatientRepository:
                 {"$set": update_data}
             )
         except Exception as error:
-            logging.error(f"Update Patient Error | Patient ID: {patient_id} | Error: {error}", exc_info=True)
+            logger.error(f"Update Patient Error | Patient ID: {patient_id} | Error: {error}", exc_info=True)
             return False
 
     @check_connection
     def delete_patient(self, patient_id):
+        logger.info("Deleting patient record %s", patient_id)
         try:
             patient = self.patients.find_one({"_id": patient_id})
             if not patient:
+                logger.warning("Patient record not found for delete: %s", patient_id)
                 return False
 
             self.deleted_patients.insert_one(patient)
@@ -159,5 +189,5 @@ class PatientRepository:
             )
             return result
         except Exception as error:
-            logging.error(f"Delete Patient Error: {error}", exc_info=True)
+            logger.error(f"Delete Patient Error: {error}", exc_info=True)
             return False

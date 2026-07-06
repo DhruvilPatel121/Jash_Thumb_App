@@ -1,3 +1,4 @@
+import logging
 from PyQt6.QtWidgets import (
      QVBoxLayout, QHBoxLayout, QLabel,
     QPushButton, QFrame, QGridLayout, QWidget, QComboBox
@@ -6,9 +7,12 @@ from PyQt6.QtGui import QShortcut, QKeySequence
 from PyQt6.QtCore import Qt
 from datetime import datetime
 
+logger = logging.getLogger(__name__)
+
 class AttendanceHistoryDialog(QFrame):
     def __init__(self, parent=None):
         super().__init__(parent)
+        logger.info("Initializing AttendanceHistoryDialog")
         self.hide()
         self.setFixedSize(1200, 860)
         self.setup_ui()
@@ -16,6 +20,7 @@ class AttendanceHistoryDialog(QFrame):
         self.esc_shortcut.activated.connect(self.hide)
 
     def setup_ui(self):
+        logger.info("Setting up UI for AttendanceHistoryDialog")
         self.setObjectName("historyCard")
         self.setStyleSheet("""
         QFrame#historyCard{
@@ -225,6 +230,7 @@ class AttendanceHistoryDialog(QFrame):
         main_layout.addLayout(footer_layout)
 
     def show_dialog(self, patient_name, history, created_at=None, consultancy_fees=0):
+        logger.info("Showing attendance history dialog for patient: %s", patient_name)
         self.load_history(patient_name, history, created_at, consultancy_fees)
         parent = self.parent()
 
@@ -237,6 +243,7 @@ class AttendanceHistoryDialog(QFrame):
         self.show()
 
     def load_history(self, patient_name, history, created_at, consultancy_fees):
+        logger.info("Loading attendance history data for patient: %s", patient_name)
         self.name_label.setText(patient_name)
         self.full_history = history 
         self.created_at = created_at
@@ -255,6 +262,7 @@ class AttendanceHistoryDialog(QFrame):
         self.filter_and_display()
 
     def filter_and_display(self):
+        logger.info("Filtering attendance history display")
         DEFAULT_CARD_STYLE = """
             QFrame { background-color: #F8FAFC; border: 1px solid #CBD5E1; border-radius: 8px; }
         """
@@ -279,20 +287,20 @@ class AttendanceHistoryDialog(QFrame):
             widgets['card'].setStyleSheet(DEFAULT_CARD_STYLE)
             widgets['date_lbl'].setStyleSheet(DEFAULT_DATE_STYLE)
         
-
         selected_month = self.month_combo.currentIndex() + 1
         selected_year = int(self.year_combo.currentText())
+        logger.debug("Selected month=%s year=%s", selected_month, selected_year)
         monthly_visits = 0
         
         day_data = {day: {'time': None, 'time_color': None, 'is_consulting': False, 'is_last_day': False, 'status_html': None} for day in range(1, 32)}
        
             # 1. Consulting Logic
         if hasattr(self, 'created_at') and self.created_at:
-            # Consultancy fee ne float ma convert karvani koshish karo
             try:
                 fees = int(self.consultancy_fees) if self.consultancy_fees else 0
             except (ValueError, TypeError):
                 fees = 0
+                logger.error("Invalid consultancy_fees format: %s", self.consultancy_fees, exc_info=True)
 
             if fees > 0:
                 if isinstance(self.created_at, str):
@@ -300,10 +308,12 @@ class AttendanceHistoryDialog(QFrame):
                         reg_date = datetime.strptime(self.created_at[:10], "%Y-%m-%d")
                     except ValueError:
                         reg_date = None
+                        logger.error("Invalid created_at date format: %s", self.created_at, exc_info=True)
                 else:
                     reg_date = self.created_at
                 
                 if reg_date and reg_date.month == selected_month and reg_date.year == selected_year:
+                    logger.debug("Consulting condition met for registration date: %s", reg_date)
                     print("Consulting condition TRUE")
                     day_data[reg_date.day]["is_consulting"] = True
 
@@ -329,7 +339,7 @@ class AttendanceHistoryDialog(QFrame):
                                         time_obj = datetime.strptime(raw_time, "%H:%M")
                                         display_time = time_obj.strftime("%I:%M %p")
                                     except ValueError:
-                                        pass 
+                                        logger.error("Invalid check_in_time format: %s", raw_time, exc_info=True)
                             
                             used_days = int(record.get("used_days", 0) or 0)
                             paid_days = int(record.get("paid_days", 0) or 0)
@@ -367,20 +377,23 @@ class AttendanceHistoryDialog(QFrame):
                                         payment_html = "<span style='background-color: #FEE2E2; color: #DC2626; padding: 3px 8px; border-radius: 4px; font-size: 12px;'>Due</span>"
                                         time_color = "#DC2626"
                                         
+
                                     day_data[day]['payment_html'] = payment_html
 
                                     if paid_days > 0 and used_days == paid_days:
                                         status_html = "<span style='background-color: #FFEDD5; color: #EA580C; padding: 3px 8px; border-radius: 4px; font-size: 12px;'>Last Day</span>"
                                         time_color = "#EA580C"
                                         
+
                                         day_data[day]['is_last_day'] = True  
                                         day_data[day]['status_html'] = status_html
                                         
+
                             day_data[day]['time'] = display_time
                             day_data[day]['time_color'] = time_color
                             monthly_visits += 1
                     except ValueError:
-                        pass
+                        logger.error("Invalid attendance_date format: %s", raw_date, exc_info=True)
         
         # 3. UI Update Logic
         for day, widgets in self.day_cards.items():
@@ -411,3 +424,4 @@ class AttendanceHistoryDialog(QFrame):
                 widgets['time_lbl'].setText(final_text)
         
         self.visits_label.setText(str(monthly_visits))
+        logger.debug("Attendance history display updated with monthly_visits=%s", monthly_visits)

@@ -1,4 +1,5 @@
 import os
+import logging
 from PyQt6.QtWidgets import (QWidget,QButtonGroup,QHBoxLayout,QVBoxLayout,QCheckBox,QPushButton,QFrame, QLabel, QRadioButton)
 from PyQt6.QtCore import Qt,QDateTime,QTimer,QEvent,QSize,QRegularExpression
 from PyQt6.QtGui import QPixmap,QMovie,QRegularExpressionValidator
@@ -16,6 +17,7 @@ from utils.resource_path import resource_path
 from PyQt6.QtGui import QDesktopServices
 from PyQt6.QtCore import QUrl
 
+logger = logging.getLogger(__name__)
 
 class RegistrationPage(QWidget):
 
@@ -23,6 +25,7 @@ class RegistrationPage(QWidget):
     role_changed = pyqtSignal(str)
     def __init__(self, db=None):
         super().__init__()
+        logger.info("Initializing RegistrationPage")
 
         self.db = db
         self.setup_ui()
@@ -41,9 +44,11 @@ class RegistrationPage(QWidget):
 
     def showEvent(self, event):
         super().showEvent(event)
+        logger.info("RegistrationPage showEvent triggered")
         self.reset_scanner_ui()
 
     def reset_scanner_ui(self):
+        logger.info("Resetting scanner UI state")
         self.template_bytes = None
         self.device_status.setText("Device Status : --")
         self.update_scan_status(
@@ -54,6 +59,7 @@ class RegistrationPage(QWidget):
         self.capture_status.setText("Place your finger on the scanner")
 
     def setup_ui(self):
+        logger.info("Setting up UI for RegistrationPage")
         # Main Layout
         self.main_layout = QHBoxLayout()
         self.main_layout.setContentsMargins(0, 0, 0, 0)
@@ -546,7 +552,7 @@ class RegistrationPage(QWidget):
                 background-color: #5C62D6;
                 color: white;
                 border: none;
-                border-radius: 10px;Fsearch
+                border-radius: 10px;
                 font-size: 14px;
                 font-weight: 600;
             }
@@ -636,6 +642,7 @@ class RegistrationPage(QWidget):
         self.ortho_radio.installEventFilter(self)
 
     def eventFilter(self, obj, event):
+        logger.debug("RegistrationPage eventFilter called for object=%s event=%s", obj, event.type())
         if event.type() == QEvent.Type.KeyPress:
             if event.key() == Qt.Key.Key_Tab:
                 
@@ -679,6 +686,7 @@ class RegistrationPage(QWidget):
         return super().eventFilter(obj, event)
     
     def validate_registration(self):
+        logger.info("Validating registration form")
         name = self.name_input.text().strip()
         mobile = self.mobile_input.text().strip()
         gender = (self.male_radio.isChecked() or self.female_radio.isChecked())
@@ -704,6 +712,7 @@ class RegistrationPage(QWidget):
             
     
     def capture_fingerprint(self):
+        logger.info("Starting fingerprint capture")
         
         if not self.scanner.load_sdk():
             ToastNotification.show_toast(
@@ -794,6 +803,7 @@ class RegistrationPage(QWidget):
         self.scanner.terminate()
 
     def apply_dummy_fingerprint(self):
+        logger.info("Applying dummy fingerprint template")
         self.template_bytes = b"MANUAL_BYPASS_DUMMY_TEMPLATE_XYZ"
         self.device_status.setText("Device Status : Bypassed ⚠️")
         self.update_scan_status(
@@ -804,6 +814,7 @@ class RegistrationPage(QWidget):
         self.capture_status.setText("Ready to save manually.")
 
     def is_fingerprint_already_registered(self):
+        logger.info("Checking if captured fingerprint is already registered")
         try:
             organization_id = Session.organization_id
             patients = self.patient_repository.get_all_by_organization(organization_id)
@@ -836,6 +847,7 @@ class RegistrationPage(QWidget):
 
 
     def save_patient(self):
+        logger.info("Saving patient record")
         if not self.validate_registration():
             return
         organization_id = (Session.organization_id)
@@ -907,6 +919,7 @@ class RegistrationPage(QWidget):
             return
 
     def update_date_time(self):
+        logger.debug("Updating date/time labels")
         current_datetime = QDateTime.currentDateTime()
         current_date = current_datetime.toString("dd MMM yyyy")
         current_time = current_datetime.toString("hh:mm:ss AP")
@@ -915,7 +928,7 @@ class RegistrationPage(QWidget):
 
     
     def clear_registration_form(self):
-
+        logger.info("Clearing registration form")
         self.name_input.clear()
         self.mobile_input.clear()
         self.age_input.clear()
@@ -938,6 +951,7 @@ class RegistrationPage(QWidget):
         self.name_input.setFocus()
 
     def clear_fingerprint_scan(self):
+        logger.info("Clearing fingerprint scan state")
         try:
             self.template_bytes = None
             print("")
@@ -950,6 +964,7 @@ class RegistrationPage(QWidget):
 
 
     def update_scan_status(self, source, message, color="#3B82F6"):
+        logger.debug("Updating scan status with source=%s message=%s", source, message)
         source = resource_path(source)
         if hasattr(self, 'movie') and self.movie is not None:
             self.movie.stop()
@@ -999,6 +1014,7 @@ class RegistrationPage(QWidget):
         """)
 
     def show_role_popup(self, event):
+        logger.info("Showing role selection popup")
         from utils.role_switch import open_role_switch_popup, open_admin_menu_popup
         
         if getattr(self, 'current_role', 'Admin') == "Staff":

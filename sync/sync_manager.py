@@ -5,9 +5,12 @@ from database.mongodb_connection import MongoDBConnection
 from database.atlas_connection import AtlasConnection
 import logging
 
+logger = logging.getLogger(__name__)
+
 class SyncManager:
 
     def __init__(self):
+        logger.info("Initializing SyncManager")
         self.local_db = MongoDBConnection()
         self.atlas_db = AtlasConnection()
 
@@ -15,15 +18,17 @@ class SyncManager:
         try:
             self.sync_organizations()
         except Exception as error:
-            logging.error(f"Organization Sync Error: {error}", exc_info=True)
+            logger.error("Organization Sync Error", exc_info=True)
 
         try:
             self.process_outbox()
         except Exception as error:
-            logging.error(f"Outbox Sync Error: {error}", exc_info=True)
+            logger.error("Outbox Sync Error", exc_info=True)
 
     def sync_organizations(self):
+        logger.info("Running organization sync")
         if not Session.is_logged_in():
+            logger.debug("Session not logged in, skipping organization sync")
             return
 
         organization_id = ObjectId(Session.organization_id)
@@ -31,6 +36,7 @@ class SyncManager:
         atlas_org = self.atlas_db.organizations.find_one({"_id": organization_id})
 
         if not local_org or not atlas_org:
+            logger.warning("Local or Atlas organization record missing for sync")
             return
 
         atlas_time = atlas_org.get("updated_at")
@@ -43,14 +49,13 @@ class SyncManager:
                 try:
                     return datetime.fromisoformat(t)
                 except ValueError:
+                    logger.warning("Invalid datetime format in sync timestamps: %s", t)
                     pass
             return datetime.min 
 
         atlas_time_dt = get_valid_time(atlas_time)
         local_time_dt = get_valid_time(local_time)
-        # --- TIME FIX END ---
 
-        # 1. Jo Atlas ma data latest hoy, to Local (Compass) update karo
         if atlas_time_dt > local_time_dt:
             self.local_db.organizations.update_one(
                 {"_id": organization_id},
@@ -65,9 +70,7 @@ class SyncManager:
                     }
                 }
             )
-            logging.info(f"Organization Synced: Atlas -> Local for {Session.organization_username}")
-
-        # 2. Jo Local (Compass) ma data latest hoy, to Atlas update karo
+            logger.info("Organization Synced: Atlas -> Local for %s", Session.organization_username)
         elif local_time_dt > atlas_time_dt:
             self.atlas_db.organizations.update_one(
                 {"_id": organization_id},
@@ -81,13 +84,16 @@ class SyncManager:
                     }
                 }
             )
-            logging.info(f"Organization Synced: Local -> Atlas for {Session.organization_username}")
-            
+            logger.info("Organization Synced: Local -> Atlas for %s", Session.organization_username)
+        else:
+            logger.debug("Organization data already synchronized for %s", Session.organization_username)
 
     def process_outbox(self):
+        logger.info("Processing outbox tasks")
         pending_tasks = list(self.local_db.offline_outbox.find().sort("timestamp", 1))
         
         if not pending_tasks:
+            logger.info("No pending outbox tasks to sync")
             return 
             
         for task in pending_tasks:
@@ -104,8 +110,8 @@ class SyncManager:
                     col.delete_one(task["query"])
                     
                 self.local_db.offline_outbox.delete_one({"_id": task["_id"]})
-                logging.info(f"Successfully synced: {task['action']} on {task['collection']}")
+                logger.info("Successfully synced: %s on %s", task["action"], task["collection"])
 
             except Exception as e:
-                logging.error(f"Sync Outbox Failed: {e}")
+                logger.error("Sync Outbox Failed: %s", e, exc_info=True)
                 break

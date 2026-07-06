@@ -1,3 +1,4 @@
+import logging
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QLabel, QListWidget, 
                              QListWidgetItem, QPushButton, QLineEdit)
 from PyQt6.QtCore import Qt
@@ -5,8 +6,11 @@ from PyQt6.QtGui import QCursor
 from datetime import datetime
 from utils.session import Session
 
+logger = logging.getLogger(__name__)
+
 class ManualAttendanceDialog(QDialog):
     def __init__(self, parent, attendance_worker):
+        logger.info("Initializing ManualAttendanceDialog")
         super().__init__(parent)
         self.attendance_worker = attendance_worker
         self.setWindowFlags(Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint)
@@ -14,6 +18,7 @@ class ManualAttendanceDialog(QDialog):
         self.setup_ui()
 
     def setup_ui(self):
+        logger.info("Setting up UI for ManualAttendanceDialog")
         # Increased Card Size
         self.setFixedSize(550, 750) 
 
@@ -159,6 +164,7 @@ class ManualAttendanceDialog(QDialog):
         self.list_widget.itemClicked.connect(self.on_patient_selected)
 
     def load_patients(self):
+        logger.info("Loading manual attendance patient list")
         self.list_widget.clear()
         self.search_input.clear() 
         
@@ -179,12 +185,14 @@ class ManualAttendanceDialog(QDialog):
                     manual_patients.append(p)
 
         if not manual_patients:
+            logger.info("No manual attendance patients available for today")
             item = QListWidgetItem("All manual attendances are marked for today.")
             item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             item.setFlags(Qt.ItemFlag.NoItemFlags) 
             self.list_widget.addItem(item)
             self.search_input.hide() 
         else:
+            logger.info("Found %s manual attendance patients available", len(manual_patients))
             self.search_input.show()
             for p in manual_patients:
                 name = p.get('name', 'Unknown')
@@ -199,6 +207,7 @@ class ManualAttendanceDialog(QDialog):
                 self.list_widget.addItem(item)
 
     def filter_patients(self, search_text):
+        logger.debug("Filtering manual patients with search text: %s", search_text)
         search_text = search_text.lower().strip()
         
         for i in range(self.list_widget.count()):
@@ -217,6 +226,7 @@ class ManualAttendanceDialog(QDialog):
                     item.setHidden(True)
 
     def on_patient_selected(self, item):
+        logger.info("Manual attendance patient selected")
         if item.flags() & Qt.ItemFlag.ItemIsSelectable:
             patient_data = item.data(Qt.ItemDataRole.UserRole)
             self.attendance_worker.process_manual_attendance(patient_data)

@@ -5,11 +5,13 @@ import time
 from database.atlas_connection import AtlasConnection
 from sync.sync_manager import SyncManager
 
+logger = logging.getLogger(__name__)
 
 class SyncWorker(QThread):
 
     def __init__(self):
         super().__init__()
+        logger.info("Initializing SyncWorker")
         self.running = False
         self.atlas = AtlasConnection()
         self.sync_manager = SyncManager()
@@ -17,11 +19,12 @@ class SyncWorker(QThread):
     def start_worker(self):
         self.running = True
         self.start()
-        logging.info("Checking Atlas Connection...")
+        logger.info("Starting SyncWorker and checking Atlas Connection")
 
     def stop_worker(self):
         self.running = False
         self.wait()
+        logger.info("Stopping SyncWorker")
 
     def run(self):
         while self.running:
@@ -30,9 +33,6 @@ class SyncWorker(QThread):
                     self.sync_manager.run()
 
             except Exception as error:
-                logging.error(
-                    f"Sync Worker Error: {error}",
-                    exc_info=True
-                )
+                logger.error("Sync Worker Error", exc_info=True)
 
             time.sleep(30)

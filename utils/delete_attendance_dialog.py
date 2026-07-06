@@ -1,9 +1,12 @@
+import logging
 from PyQt6.QtWidgets import (QFrame, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QGraphicsDropShadowEffect)
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QColor, QKeySequence,QShortcut
+from PyQt6.QtGui import QColor, QKeySequence, QShortcut
 from database.attendance_repository import AttendanceRepository
 from utils.toast_notification import ToastNotification
 from database.mongodb_connection import DatabaseConnectionError
+
+logger = logging.getLogger(__name__)
 
 class DeleteAttendanceDialog(QFrame):
 
@@ -11,6 +14,7 @@ class DeleteAttendanceDialog(QFrame):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        logger.info("Initializing DeleteAttendanceDialog")
         self.attendance_repository = AttendanceRepository()
         self.setup_ui()
         self.esc_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Escape), self)
@@ -132,7 +136,8 @@ class DeleteAttendanceDialog(QFrame):
         card_layout.addLayout(button_layout)
 
     def show_dialog(self, record):
-        self.record_to_delete = record 
+        logger.info("Showing delete attendance dialog for record id=%s patient_name=%s", record.get("_id"), record.get("patient_name"))
+        self.record_to_delete = record
         
         self.delete_message.setText(
             f"Are you sure you want to delete?<br>"
@@ -151,16 +156,18 @@ class DeleteAttendanceDialog(QFrame):
         self.raise_()
 
     def cancel_delete(self):
+        logger.info("Canceling delete attendance dialog")
         self.hide()
 
     def confirm_delete(self):
-        # Calls the function we just created in AttendanceRepository
+        logger.info("Confirming delete for attendance id=%s", self.record_to_delete.get("_id"))
         success = self.attendance_repository.delete_attendance(
             self.record_to_delete["_id"]
         )
 
         try:
             if success:
+                logger.info("Attendance deleted successfully id=%s", self.record_to_delete.get("_id"))
                 self.hide()
                 ToastNotification.show_toast(
                     parent=self.parent(),
@@ -171,6 +178,7 @@ class DeleteAttendanceDialog(QFrame):
                 )
                 self.attendance_deleted.emit() # This triggers the dashboard to reload
             else:
+                logger.warning("Failed to delete attendance id=%s", self.record_to_delete.get("_id"))
                 ToastNotification.show_toast(
                     parent=self.parent(),
                     toast_type="error",
@@ -179,6 +187,7 @@ class DeleteAttendanceDialog(QFrame):
                     duration=4000)
                 
         except Exception as error:
+            logger.error("Toast notification error after delete attempt", exc_info=True)
             ToastNotification.show_toast(
                 self,
                 "error",

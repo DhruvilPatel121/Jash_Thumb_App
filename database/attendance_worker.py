@@ -8,6 +8,8 @@ from utils.session import Session
 from datetime import datetime
 import logging
 
+logger = logging.getLogger(__name__)
+
 
 class AttendanceWorker(QThread):
     scanner_connected = pyqtSignal()
@@ -20,6 +22,7 @@ class AttendanceWorker(QThread):
 
     def __init__(self):
         super().__init__()
+        logger.info("Initializing AttendanceWorker")
         self.running = False
         self.processing = False
         self.finger_locked = False
@@ -31,57 +34,65 @@ class AttendanceWorker(QThread):
         self.cached_patients = []
 
     def start_attendance(self):
+        logger.info("Starting attendance worker")
         self.organization_id = Session.organization_id
         self.cached_patients = self.patient_repository.get_all_by_organization(self.organization_id)
         self.running = True
         self.start()
 
     def stop_attendance(self):
+        logger.info("Stopping attendance worker")
         self.running = False
         self.wait()
         self.cached_patients = []
 
     def open_scanner(self):
+        logger.info("Opening scanner for attendance")
         if not self.scanner.load_sdk():
-            logging.error("Scanner SDK Load Failed")
+            logger.error("Scanner SDK Load Failed")
             return False
 
         if not self.scanner.create():
-            logging.error("Scanner Create Failed")
+            logger.error("Scanner Create Failed")
             return False
 
         if not self.scanner.initialize():
-            logging.error("Scanner Initialize Failed")
+            logger.error("Scanner Initialize Failed")
             return False
 
         self.scanner.sdk.SGFPM_SetTemplateFormat(self.scanner.hfpm, 0x0200)
 
         if not self.scanner.open_device():
             self.scanner_connection_failed.emit("Scanner Not Connected")
-            logging.error("Scanner Not Connected")
+            logger.error("Scanner Not Connected")
             return False
 
         self.scanner.sdk.SGFPM_EnableSmartCapture(self.scanner.hfpm, True)
         self.scanner_connected.emit()
+        logger.info("Scanner opened and ready")
         return True
 
     def close_scanner(self):
+        logger.info("Closing attendance scanner")
         try:
             self.scanner.close_device()
             self.scanner.terminate()
             self.scanner_disconnected.emit()
         except Exception as error:
-            logging.error(f"Scanner Close Error: {error}", exc_info=True)
+            logger.error("Scanner Close Error", exc_info=True)
 
     def process_attendance(self, image):
+        logger.info("Processing attendance image")
         try:
             template = self.enrollment.create_template_bytes(image)
             if not template:
+                logger.warning("Attendance template creation failed")
                 return
-            
+
             patient = self.verification.identify_patient_attendance(template, self.cached_patients)
             if not patient:
                 self.patient_not_found.emit()
+                logger.warning("No matching patient found for attendance")
                 return
 
             fresh_patient = self.patient_repository.patients.find_one({"_id": patient["_id"]})
@@ -95,6 +106,7 @@ class AttendanceWorker(QThread):
             )
             if attendance:
                 self.already_taken.emit(patient["name"])
+                logger.info("Attendance already taken today for %s", patient["name"])
                 return
 
             department = patient.get("department", "").strip()
@@ -121,7 +133,6 @@ class AttendanceWorker(QThread):
                 used_days = 0
                 payment_per_day = 0
                 paid_days = 0
-
             else:
                 payment_per_day = patient.get("payment_per_day", 0)
                 paid_days = patient.get("paid_days", 0)
@@ -156,14 +167,17 @@ class AttendanceWorker(QThread):
             patient["display_department"] = department
 
             self.attendance_marked.emit(patient)
+            logger.info("Attendance marked for patient %s", patient.get("name", "Unknown"))
         finally:
             self.processing = False
-
+            logger.debug("Finished processing attendance image")
 
     def run(self):
+        logger.info("AttendanceWorker thread started")
         scanner_ready = self.open_scanner()
         if not scanner_ready:
             self.running = False
+            logger.warning("Scanner not ready, stopping AttendanceWorker")
             return
         while self.running:
             try:
@@ -184,13 +198,14 @@ class AttendanceWorker(QThread):
                 self.processing = True
                 self.process_attendance(image)
             except Exception as error:
-                logging.error(f"Attendance Error: {error}", exc_info=True)
+                logger.error("Attendance Error", exc_info=True)
                 self.processing = False
                 self.finger_locked = False
                 continue
         self.close_scanner()
 
     def process_manual_attendance(self, patient):
+        logger.info("Processing manual attendance for patient %s", patient.get("_id"))
         try:
             self.processing = True
             self.organization_id = Session.organization_id
@@ -207,6 +222,7 @@ class AttendanceWorker(QThread):
             )
             if attendance:
                 self.already_taken.emit(patient["name"])
+                logger.info("Manual attendance already taken today for %s", patient["name"])
                 return
 
             department = patient.get("department", "").strip()
@@ -233,7 +249,6 @@ class AttendanceWorker(QThread):
                 used_days = 0
                 payment_per_day = 0
                 paid_days = 0
-
             else:
                 payment_per_day = patient.get("payment_per_day", 0)
                 paid_days = patient.get("paid_days", 0)
@@ -268,10 +283,8 @@ class AttendanceWorker(QThread):
             patient["display_department"] = department
 
             self.attendance_marked.emit(patient)
+            logger.info("Manual attendance marked for patient %s", patient.get("name", "Unknown"))
         except Exception as error:
-            logging.error(f"Manual Attendance Error: {error}", exc_info=True)
+            logger.error("Manual Attendance Error", exc_info=True)
         finally:
             self.processing = False
-
-
-    

@@ -1,4 +1,5 @@
 import hashlib
+import logging
 from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QHBoxLayout, QWidget, QFrame, QGraphicsDropShadowEffect
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor
@@ -6,8 +7,11 @@ from database.organization_repository import OrganizationRepository
 from utils.session import Session
 from utils.toast_notification import ToastNotification
 
+logger = logging.getLogger(__name__)
+
 # --- 1. STAFF TO ADMIN PASSWORD DIALOG ---
 def open_role_switch_popup(parent, on_success_callback):
+    logger.info("Opening role switch popup")
     dialog = QDialog(parent)
     dialog.setWindowTitle("Admin Authentication")
     dialog.setFixedSize(360, 250)
@@ -72,10 +76,12 @@ def open_role_switch_popup(parent, on_success_callback):
     layout.addWidget(btn)
 
     def verify_password():
+        logger.info("Verifying admin role password")
         error_label.setText("")
         password = pwd_input.text().strip()
         
         if not password:
+            logger.warning("Role switch failed: empty password")
             error_label.setText("Please enter a password.")
             return
 
@@ -84,10 +90,12 @@ def open_role_switch_popup(parent, on_success_callback):
         role = repository.verify_role_password(Session.organization_id, hashed_password)
         
         if role == "Admin":
+            logger.info("Role switch to Admin succeeded")
             dialog.accept()
             ToastNotification.show_toast(parent, "success", "Role Switched", "Switched to Admin successfully.", 3000)
             on_success_callback("Admin")
         else:
+            logger.warning("Role switch failed: incorrect admin password")
             error_label.setText("Incorrect Admin password.")
             pwd_input.clear()
             pwd_input.setFocus()
@@ -101,6 +109,7 @@ def open_role_switch_popup(parent, on_success_callback):
 class AdminMenuPopup(QWidget):
     def __init__(self, parent_widget, anchor_widget, on_switch):
         super().__init__(parent_widget)
+        logger.info("Initializing AdminMenuPopup")
         self.parent_widget = parent_widget
         self.anchor_widget = anchor_widget
         self.on_switch = on_switch
@@ -109,6 +118,7 @@ class AdminMenuPopup(QWidget):
         self.setup_ui()
 
     def setup_ui(self):
+        logger.info("Setting up AdminMenuPopup UI")
         self.frame = QFrame(self)
         self.frame.setStyleSheet("""
             QFrame {
@@ -164,19 +174,21 @@ class AdminMenuPopup(QWidget):
         main_layout.addWidget(self.frame)
 
     def do_switch(self):
+        logger.info("Switching role to Staff")
         self.close()
         ToastNotification.show_toast(self.parent_widget, "success", "Role Switched", "Switched to Staff successfully.", 3000)
         self.on_switch("Staff")
 
     def open_pwd_dialog(self):
+        logger.info("Opening admin password change dialog from AdminMenuPopup")
         self.close()
         from utils.admin_pwd_change import open_admin_password_dialog
         open_admin_password_dialog(self.parent_widget)
 
 def open_admin_menu_popup(parent, anchor, on_switch):
+    logger.info("Opening admin menu popup")
     popup = AdminMenuPopup(parent, anchor, on_switch)
     popup.adjustSize()
-    # યુઝર લેબલની એક્ઝેક્ટ નીચે જમણી બાજુ ખોલવા માટે
     pos = anchor.mapToGlobal(anchor.rect().bottomRight())
     popup.move(pos.x() - popup.width() + 15, pos.y() - 5)
     popup.show()

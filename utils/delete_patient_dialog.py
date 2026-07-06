@@ -1,9 +1,12 @@
+import logging
 from PyQt6.QtWidgets import (QFrame, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QGraphicsDropShadowEffect)
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QColor, QShortcut,QKeySequence
+from PyQt6.QtGui import QColor, QShortcut, QKeySequence
 from database.patient_repository import PatientRepository
 from utils.toast_notification import ToastNotification
 from database.mongodb_connection import DatabaseConnectionError
+
+logger = logging.getLogger(__name__)
 
 class DeletePatientDialog(QFrame):
 
@@ -11,6 +14,7 @@ class DeletePatientDialog(QFrame):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        logger.info("Initializing DeletePatientDialog")
         self.patient_repository = PatientRepository()
         self.setup_ui()
         self.esc_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Escape), self)
@@ -131,8 +135,8 @@ class DeletePatientDialog(QFrame):
         button_layout.addWidget(self.confirm_delete_btn)
         card_layout.addLayout(button_layout)
 
-    # LOGIC REMAINS EXACTLY THE SAME
     def show_dialog(self, patient):
+        logger.info("Showing delete patient dialog for patient id=%s name=%s", patient.get("_id"), patient.get("name"))
         self.patient_to_delete = patient
         
         self.delete_message.setText(
@@ -152,15 +156,18 @@ class DeletePatientDialog(QFrame):
         self.raise_()
 
     def cancel_delete(self):
+        logger.info("Canceling delete patient dialog")
         self.hide()
 
     def confirm_delete(self):
+        logger.info("Confirming delete for patient id=%s", self.patient_to_delete.get("_id"))
         success = self.patient_repository.delete_patient(
             self.patient_to_delete["_id"]
         )
 
         try:
             if success:
+                logger.info("Patient deleted successfully id=%s", self.patient_to_delete.get("_id"))
                 self.hide()
                 ToastNotification.show_toast(
                     parent=self.parent(),
@@ -171,6 +178,7 @@ class DeletePatientDialog(QFrame):
                 )
                 self.patient_deleted.emit()
             else:
+                logger.warning("Failed to delete patient id=%s", self.patient_to_delete.get("_id"))
                 ToastNotification.show_toast(
                     parent=self.parent(),
                     toast_type="error",
@@ -179,6 +187,7 @@ class DeletePatientDialog(QFrame):
                     duration=4000)
                 
         except DatabaseConnectionError as error:
+            logger.error("Database connection error during patient delete toast", exc_info=True)
             ToastNotification.show_toast(
                 self,
                 "error",
