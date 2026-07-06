@@ -699,7 +699,7 @@ class DashboardPage(QWidget):
             used_days = int(record.get("used_days", 0) or 0)
             is_payment_due = used_days > paid_days
             logger.debug("Row %s payment status paid_days=%s used_days=%s is_payment_due=%s", row_idx, paid_days, used_days, is_payment_due)
-            print("dashboard",is_payment_due)
+            # print("dashboard",is_payment_due)
             
             # FIXED: Make sure paid_days is greater than 0 to avoid 0 == 0 bug
             if paid_days > 0 and paid_days == used_days:
@@ -707,7 +707,7 @@ class DashboardPage(QWidget):
             else:
                 last_day = False
                 
-            print(f"dashboard   last_day: {last_day} , paid_days: {paid_days}, used_days: {used_days}")
+            # print(f"dashboard   last_day: {last_day} , paid_days: {paid_days}, used_days: {used_days}")
 
             problem = record.get("problem", "").strip()
             if not problem:
