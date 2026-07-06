@@ -25,11 +25,11 @@ class AppCorePage(QWidget):
         
     def setup_ui(self):
         logger.info("Setting up UI for AppCorePage")
-        print("Setting up UI in AppCorePage open")
+        # print("Setting up UI in AppCorePage open")
         self.sync_worker = SyncWorker()
         self.sync_worker.start_worker()
         logger.debug("SyncWorker started in AppCorePage")
-        print("Sync Worker started in AppCorePage")
+        # print("Sync Worker started in AppCorePage")
         self.main_layout = QVBoxLayout()
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.main_layout.setSpacing(0)
