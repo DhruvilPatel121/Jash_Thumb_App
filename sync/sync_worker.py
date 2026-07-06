@@ -31,7 +31,9 @@ class SyncWorker(QThread):
             try:
                 if self.atlas.is_connected():
                     self.sync_manager.run()
-
+                    # print("Sync completed successfully.")
+                else:  
+                    logger.warning("Atlas is not connected. Skipping sync.")    
             except Exception as error:
                 logger.error("Sync Worker Error", exc_info=True)
 
