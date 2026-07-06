@@ -25,6 +25,8 @@ class OrganizationRepository:
     def verify_login(self,email,password):
         logger.info("Verifying login for email: %s", email)
         organization = (self.get_by_email(email))
+        # print(f"Organization found: {password}")  # Debugging line
+        # print(f"Organization found: {organization['password']}")  # Debugging line
         if not organization:
             return None
         if organization["password"] != password:
@@ -36,18 +38,10 @@ class OrganizationRepository:
         organization = self.organizations.find_one({"_id": ObjectId(organization_id)})
         if not organization:
             logger.warning("Organization not found for role verification: %s", organization_id)
-            return None
-
-        # Admin Password
-        if organization.get("password") == hashed_password:
-            return "Admin"
-
-        # Staff Password
-        if organization.get("staff_password") == hashed_password:
-            return "Staff"
-
-        return None
-
+            return False
+        # print(f"Organization found for role verification: {organization['password']}")  # Debugging line
+        # print(f"Provided hashed password: {hashed_password}")  # Debugging line
+        return organization.get("password") == hashed_password
 
     def get_by_id(self, organization_id):
         logger.info("Retrieving organization by id: %s", organization_id)
