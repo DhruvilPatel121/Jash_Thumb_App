@@ -251,8 +251,17 @@ class PatientSuccessModal(QWidget):
 
     def __init__(self, parent, name, age, gender, department, problem, used_days, paid_days, serial_no=None, duration=5000):
         super().__init__(parent)
+        print("toast used days :", used_days , "paid days : " , paid_days)
         is_payment_due = int(used_days) > int(paid_days)
-        last_day = int(paid_days) - int(used_days)
+        paid_days = int(paid_days)
+        used_days = int(used_days)
+        last_day = paid_days - used_days 
+        print("toast last days :", last_day , "payment due" , is_payment_due)
+        # if paid_days == used_days:
+        #         last_day = True
+        # else:
+        #         last_day = False
+        # print(last_day)
         self.duration = duration
         self.resize(parent.width(), parent.height())
         self.setStyleSheet("""
@@ -338,7 +347,7 @@ class PatientSuccessModal(QWidget):
                 label_color = "#B91C1C"
 
             # Last Day Remaining
-            elif last_day == 1:
+            elif (paid_days or used_days) and paid_days - used_days == 0:
                 box_bg = "#FFF7D6"
                 border_color = "#FFBF00"
                 text_color = "#B7791F"
