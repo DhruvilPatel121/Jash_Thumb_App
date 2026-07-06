@@ -24,6 +24,7 @@ class LicenseManager:
                 return True
 
             valid_upto = org.get("valid_upto")
+            logger.debug("Retrieved valid_upto=%s for organization_id=%s", valid_upto, organization_id)
 
             if not valid_upto:
                 logger.debug("No valid_upto value found, assuming license is valid")
@@ -38,7 +39,7 @@ class LicenseManager:
                 expiry_date = valid_upto.date()
 
             today = datetime.now().date()
-
+            logger.debug("Current date=%s, License expiry date=%s", today, expiry_date)
             if today > expiry_date:
                 logger.warning("License expired for organization_id=%s expiry_date=%s", organization_id, expiry_date)
                 QMessageBox.critical(
