@@ -244,20 +244,20 @@ class AttendanceWorker(QThread):
                     used_days = attendance_count + 1
 
             self.attendance_repository.mark_attendance(
-                self.organization_id,
-                str(patient["_id"]),
-                patient.get("token_no", ""),
-                patient.get("name", ""),
-                patient.get("mobile", ""),
-                patient.get("gender", ""),
-                today_date,
-                current_time,
-                department,
-                patient.get("age", ""),
-                patient.get("problem", ""),
-                payment_per_day,
-                paid_days,
-                used_days,
+                organization_id=self.organization_id,
+                patient_id=str(patient["_id"]),
+                serial_no=patient.get("token_no", ""),
+                patient_name=patient.get("name", ""),
+                mobile=patient.get("mobile", ""),
+                gender=patient.get("gender", ""),
+                attendance_date=today_date,
+                check_in_time=current_time,
+                department=department,
+                age=patient.get("age", ""),
+                problem=patient.get("problem", ""),
+                payment_per_day=payment_per_day,
+                paid_days=paid_days,
+                used_days=used_days,
             )
 
             patient["attendance_time"] = current_time
