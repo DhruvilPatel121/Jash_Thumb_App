@@ -87,9 +87,9 @@ def open_role_switch_popup(parent, on_success_callback):
 
         hashed_password = hashlib.sha256(password.encode("utf-8")).hexdigest()
         repository = OrganizationRepository()
-        role = repository.verify_role_password(Session.organization_id, hashed_password)
+        is_admin_password = repository.verify_role_password(Session.organization_id, hashed_password)
         
-        if role == "Admin":
+        if is_admin_password:
             logger.info("Role switch to Admin succeeded")
             dialog.accept()
             ToastNotification.show_toast(parent, "success", "Role Switched", "Switched to Admin successfully.", 3000)
