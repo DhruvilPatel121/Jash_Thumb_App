@@ -1,6 +1,7 @@
 from PyQt6.QtWidgets import (
     QWidget,
     QVBoxLayout,
+    QHBoxLayout,
     QLabel,
     QFrame,
     QGraphicsDropShadowEffect
@@ -43,6 +44,22 @@ class LicenseExpiredPage(QWidget):
             border-bottom: 1px solid #E2E8F0;
         }
         """)
+        
+        # ADDED: SHIVVILON SOLUTION Heading in the Header
+        self.header_layout = QHBoxLayout(self.header)
+        self.header_layout.setContentsMargins(30, 0, 30, 0) # Left and right padding
+        
+        self.header_title = QLabel("SHIVVILON SOLUTION")
+        self.header_title.setStyleSheet("""
+            color: #0F172A; 
+            font-size: 24px; 
+            font-weight: 900; 
+            letter-spacing: 1px;
+            border: none;
+        """)
+        self.header_layout.addWidget(self.header_title)
+        self.header_layout.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignCenter)
+        
         self.main_layout.addWidget(self.header)
         logger.debug("Header frame created and added to layout")
 
@@ -65,7 +82,6 @@ class LicenseExpiredPage(QWidget):
             background-color: #FFFFFF;
             border-radius: 16px;
             border: 1px solid #E2E8F0;
-
         }
         """)
         logger.debug("Expiry card created with styling")
@@ -81,8 +97,12 @@ class LicenseExpiredPage(QWidget):
         # Card Layout
         self.card_layout = QVBoxLayout(self.card)
         self.card_layout.setContentsMargins(50, 40, 50, 40)
-        self.card_layout.setSpacing(15)
+        
+        # Removed global setSpacing to allow for precision custom spacing below
         self.card_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        # Add stretch at the top to push content perfectly to the middle
+        self.card_layout.addStretch()
 
         # 1. Cross Icon
         self.icon = QLabel("✖")
@@ -91,17 +111,23 @@ class LicenseExpiredPage(QWidget):
         self.card_layout.addWidget(self.icon)
         logger.debug("Added expiry status icon to card")
 
+        self.card_layout.addSpacing(10) # Space between icon and title
+
         # 2. Main Status Heading
         self.status_title = QLabel("License Expired")
         self.status_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.status_title.setStyleSheet("color: #0F172A; font-size: 32px; font-weight: 800; background-color: transparent; border: none;")
         self.card_layout.addWidget(self.status_title)
 
+        self.card_layout.addSpacing(5) # Tight space between title and subtitle
+
         # 3. Premium Over Message
         self.premium_msg = QLabel("Your application premium is over.")
         self.premium_msg.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.premium_msg.setStyleSheet("color: #DC2626; font-size: 20px; font-weight: 600; background-color: transparent; border: none;")
         self.card_layout.addWidget(self.premium_msg)
+
+        self.card_layout.addSpacing(25) # Larger gap before the date
 
         # 4. Today's Date (Dynamic)
         current_date = QDate.currentDate().toString("dd MMMM yyyy")
@@ -110,8 +136,7 @@ class LicenseExpiredPage(QWidget):
         self.date_label.setStyleSheet("color: #64748B; font-size: 16px; font-weight: 500; background-color: transparent; border: none;")
         self.card_layout.addWidget(self.date_label)
 
-        # Spacer to separate date from the instructions
-        self.card_layout.addSpacing(10)
+        self.card_layout.addSpacing(35) # Distinct visual break before instructions
 
         # 5. Instructions & Contact Message
         contact_text = (
@@ -132,6 +157,30 @@ class LicenseExpiredPage(QWidget):
         """)
         self.card_layout.addWidget(self.contact_msg)
         logger.debug("Added expiry instructions and contact message")
+
+        self.card_layout.addSpacing(15) # Small gap before links
+
+        self.contact_link = QLabel(
+            '<a href="tel:+918320742659" style="color:#2563EB; text-decoration:none;">Call: +91 8320742659</a><br><br>'
+            '<a href="https://shivvilonsolutions.com/" style="color:#2563EB; text-decoration:none;">'
+            'https://shivvilonsolutions.com/</a>'
+        )
+        self.contact_link.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.contact_link.setOpenExternalLinks(True)
+        self.contact_link.setStyleSheet("""
+        QLabel {
+            color: #334155;
+            font-size: 16px;
+            line-height: 1.5;
+            border: none;
+            background-color: transparent;
+        }
+        """)
+        self.card_layout.addWidget(self.contact_link)
+        logger.debug("Added contact number and website link")
+
+        # Add stretch at the bottom to balance the top stretch
+        self.card_layout.addStretch()
 
         # Add the completed card to the center container
         self.body_layout.addWidget(self.card)
