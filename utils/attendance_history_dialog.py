@@ -238,10 +238,6 @@ class AttendanceHistoryDialog(QFrame):
 
     def load_history(self, patient_name, history, created_at, consultancy_fees):
         self.name_label.setText(patient_name)
-        print(f"------------ DEBUG INFO ------------")
-        print(f"Patient: {patient_name}")
-        print(f"Fees Received from Main Window: {consultancy_fees}")
-        print(f"------------------------------------")
         self.full_history = history 
         self.created_at = created_at
         self.consultancy_fees = consultancy_fees
@@ -337,8 +333,6 @@ class AttendanceHistoryDialog(QFrame):
                             
                             used_days = int(record.get("used_days", 0) or 0)
                             paid_days = int(record.get("paid_days", 0) or 0)
-                            print(used_days)
-                            print(paid_days)
                             time_color = "#64748B"  # Default slate color (or whatever standard color you prefer)
                             status_html = None
                             payment_html = None
@@ -348,9 +342,9 @@ class AttendanceHistoryDialog(QFrame):
                             #         time_color = "#EA580C"
                             #         day_data[day]['is_last_day'] = True  
                                 
-                            #     # elif (paid_days - used_days) == 1:
-                            #     #     status_html = "<span style='background-color: #FEF08A; color: #854D0E; padding: 3px 8px; border-radius: 4px; font-size: 12px;'>1 Day Left</span>"
-                            #     #     time_color = "#CA8A04" 
+                            #     elif paid_days or used_days and (paid_days - used_days) == 0:
+                            #         status_html = "<span style='background-color: #FEF08A; color: #854D0E; padding: 3px 8px; border-radius: 4px; font-size: 12px;'>1 Day Left</span>"
+                            #         time_color = "#CA8A04" 
                                 
                             #     if used_days < paid_days:
                             #         payment_html = "<span style='background-color: #DCFCE7; color: #16A34A; padding: 3px 8px; border-radius: 4px; font-size: 12px;'>Paid</span>"
@@ -361,10 +355,10 @@ class AttendanceHistoryDialog(QFrame):
                             #         payment_html = "<span style='background-color: #FEE2E2; color: #DC2626; padding: 3px 8px; border-radius: 4px; font-size: 12px;'>Due</span>"
                             #         time_color = "#DC2626"
                             #         day_data[day]['payment_html'] = payment_html
-                            # # Now these will never throw an UnboundLocalError
-                            # day_data[day]['time'] = display_time
-                            # day_data[day]['time_color'] = time_color
-                            # day_data[day]['status_html'] = status_html
+                            # Now these will never throw an UnboundLocalError
+                            day_data[day]['time'] = display_time
+                            day_data[day]['time_color'] = time_color
+                            day_data[day]['status_html'] = status_html
                             if used_days > 0:
                                     if used_days <= paid_days:
                                         payment_html = "<span style='background-color: #DCFCE7; color: #16A34A; padding: 3px 8px; border-radius: 4px; font-size: 12px;'>Paid</span>"
