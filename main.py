@@ -7,26 +7,30 @@ from PyQt6.QtGui import QIcon
 import os
 import logging
 
-logger = logging.getLogger(__name__)
-
+# Set up the directory and path first
 log_dir = os.path.join(
     os.environ["LOCALAPPDATA"],
     "JashThumbAttendance"
 )
 
 os.makedirs(log_dir, exist_ok=True)
-print (f"Log directory ensured at: {log_dir}")
+# print(f"Log directory ensured at: {log_dir}")
 log_file = os.path.join(
     log_dir,
     "attendance.log"
 )
 
+# Unified Logging Configuration to capture ALL levels
 logging.basicConfig(
     filename=log_file,
-    level=logging.ERROR,
-    format="%(asctime)s - %(levelname)s - %(message)s"
+    level=logging.ERROR, # Setting to DEBUG captures DEBUG, INFO, WARNING, ERROR, and CRITICAL
+    format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
+    filemode="a",        # 'a' appends to the log, so you don't lose history between restarts
+    force=True           # Forces this config to override any default PyQt or underlying library loggers
 )
 
+# Initialize the logger for this file AFTER the basicConfig
+logger = logging.getLogger(__name__)
 
 def resource_path(relative_path):
     logger.debug("Resolving resource path for: %s", relative_path)
@@ -46,7 +50,7 @@ def exception_hook(exc_type, exc_value, exc_traceback):
     )
     sys.__excepthook__(exc_type, exc_value, exc_traceback)
 
-# 3. Hook ne apply karo
+# Hook apply karo
 sys.excepthook = exception_hook
 
 def connect_db(window):
@@ -58,16 +62,19 @@ def connect_db(window):
         logger.debug("Database connection established and set on window")
     except Exception as error:
         logger.error("Database Startup Error", exc_info=True)
-        logging.critical(f"Database Startup Error: {error}",exc_info=True)
+        logging.critical(f"Database Startup Error: {error}", exc_info=True)
 
 def main():
     logger.info("Starting main application")
     app = QApplication(sys.argv)
     app.setWindowIcon(QIcon(resource_path("assets/logo.ico")))
+    
     window = MainWindow()
     window.setWindowIcon(QIcon(resource_path("assets/logo.ico")))
     window.show()
+    
     QTimer.singleShot(100, lambda: connect_db(window))
+    
     sys.exit(app.exec())
 
 if __name__ == "__main__":
