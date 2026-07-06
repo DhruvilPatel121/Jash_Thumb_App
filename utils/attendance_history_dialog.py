@@ -314,7 +314,7 @@ class AttendanceHistoryDialog(QFrame):
                 
                 if reg_date and reg_date.month == selected_month and reg_date.year == selected_year:
                     logger.debug("Consulting condition met for registration date: %s", reg_date)
-                    print("Consulting condition TRUE")
+                    # print("Consulting condition TRUE")
                     day_data[reg_date.day]["is_consulting"] = True
 
         # 2. Attendance Logic
