@@ -212,7 +212,7 @@ class AttendanceRepository:
 
     def get_attendance_by_patient_id(self, patient_id):
         try:
-            attendance = self.attendance.find_one({"patient_id": str(patient_id)})
+            attendance = self.attendance.find_one({"patient_id": str(patient_id) ,"attendance_date": datetime.now().strftime("%Y-%m-%d")})
             if attendance:
                 return attendance
             else:
