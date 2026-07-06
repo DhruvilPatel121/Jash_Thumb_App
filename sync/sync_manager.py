@@ -34,6 +34,8 @@ class SyncManager:
         organization_id = ObjectId(Session.organization_id)
         local_org = self.local_db.organizations.find_one({"_id": organization_id})
         atlas_org = self.atlas_db.organizations.find_one({"_id": organization_id})
+        # print(f"Local Org: {local_org}")
+        # print(f"Atlas Org: {atlas_org}")  # Debugging line
 
         if not local_org or not atlas_org:
             logger.warning("Local or Atlas organization record missing for sync")
@@ -41,6 +43,8 @@ class SyncManager:
 
         atlas_time = atlas_org.get("updated_at")
         local_time = local_org.get("updated_at")
+        # print(f"Local Time: {local_time}")
+        # print(f"Atlas Time: {atlas_time}")  # Debugging line
 
         def get_valid_time(t):
             if isinstance(t, datetime):
