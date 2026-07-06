@@ -314,8 +314,8 @@ class RegistrationPage(QWidget):
             color: #1E293B;
             border: 1px solid #E2E8F0;
             border-radius: 8px;
-            padding: 10px 15px;
-            font-size: 14px;
+            padding: 10px 20px;
+            font-size: 12px;
         }
 
         QLineEdit:focus{
