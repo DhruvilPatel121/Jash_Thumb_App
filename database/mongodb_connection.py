@@ -22,7 +22,7 @@ def check_connection(func):
 class MongoDBConnection:
     def __init__(self):
         url = "mongodb://localhost:27017/"
-        
+
         if not url:
             raise DatabaseConnectionError("MONGODB_URI not found")
         self.client = MongoClient(
