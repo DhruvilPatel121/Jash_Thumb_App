@@ -245,12 +245,12 @@ class PatientSuccessModal(QWidget):
 
     def __init__(self, parent, name, age, gender, department, problem, used_days, paid_days, serial_no=None, duration=5000):
         super().__init__(parent)
-        print("toast used days :", used_days , "paid days : " , paid_days)
+        # print("toast used days :", used_days , "paid days : " , paid_days)
         is_payment_due = int(used_days) > int(paid_days)
         paid_days = int(paid_days)
         used_days = int(used_days)
         last_day = paid_days - used_days 
-        print("toast last days :", last_day , "payment due" , is_payment_due)
+        # print("toast last days :", last_day , "payment due" , is_payment_due)
         self.duration = duration
         self.resize(parent.width(), parent.height())
         self.setStyleSheet("""
