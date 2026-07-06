@@ -127,7 +127,7 @@ class PatientPage(QWidget):
 
         cards = [
             ("Today's Visit", "0", "#FFFFFF", "#16A34A"),
-            ("Today's Patient", "0", "#FFFFFF", "#F59E0B"),
+            ("Today's Registration", "0", "#FFFFFF", "#F59E0B"),
             ("Total Patient", "0", "#FFFFFF", "#5C62D6")
         ]
 
@@ -180,7 +180,7 @@ class PatientPage(QWidget):
             if card_title == "Today's Visit":
                 self.visited_today_count = count
                 self.visit_title = title
-            elif card_title == "Today's Patient":
+            elif card_title == "Today's Registration":
                 self.registered_today_count = count
                 self.registered_title = title
             elif card_title == "Total Patient":
