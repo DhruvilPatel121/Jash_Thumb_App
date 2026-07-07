@@ -36,13 +36,16 @@ class AttendanceRepository:
         return self.executor.execute("INSERT", "attendance", record)
     
     def update_action_status(self, attendance_id, field_name, value):
-        self.attendance.update_one(
-            {"_id": attendance_id},
-            {
-                "$set": {
-                    field_name: value
-                }
+        update_query = {
+            "$set": {
+                field_name: value
             }
+        }
+        self.executor.execute(
+            "UPDATE",
+            "attendance",
+            {"_id": attendance_id},
+            update_query
         )
 
     def is_attendance_taken_today(self, organization_id, patient_id, attendance_date):
@@ -85,6 +88,7 @@ class AttendanceRepository:
 
         except Exception as error:
             print(f"Attendance log update error: {error}")
+            logging.error(f"Update Attendance Details Error: {error}", exc_info=True)
 
     def count_today_attendance(self, organization_id, attendance_date):
         try:
@@ -355,15 +359,19 @@ class AttendanceRepository:
                 str(patient_id)
             )
             print(attendance_count)
-            self.attendance.update_one(
-                {"_id": record["_id"]},
-                {
-                    "$set": {
-                        "used_days": attendance_count + 1,
-                        "payment_per_day": payment_per_day,
-                        "paid_days": paid_days,
-                    }
+            
+            update_query = {
+                "$set": {
+                    "used_days": attendance_count + 1,
+                    "payment_per_day": payment_per_day,
+                    "paid_days": paid_days,
                 }
+            }
+            self.executor.execute(
+                "UPDATE",
+                "attendance",
+                {"_id": record["_id"]},
+                update_query
             )
 
         except Exception as error:
@@ -383,16 +391,19 @@ class AttendanceRepository:
     def downgrade_treatment_to_consulting(self, patient_id, payment_per_day, paid_days):
         today_date = datetime.now().strftime("%Y-%m-%d")
 
-        self.attendance.update_one(
+        update_query = {
+            "$set": {
+                "used_days": 0,
+                "payment_per_day": payment_per_day,
+                "paid_days": paid_days,
+            }
+        }
+        self.executor.execute(
+            "UPDATE",
+            "attendance",
             {
                 "patient_id": str(patient_id),
                 "attendance_date": today_date
             },
-            {
-                "$set": {
-                    "used_days": 0,
-                    "payment_per_day": payment_per_day,
-                        "paid_days": paid_days,
-                }
-            }
+            update_query
         )
