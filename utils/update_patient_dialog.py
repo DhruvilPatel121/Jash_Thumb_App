@@ -76,7 +76,7 @@ class UpdatePatientDialog(QFrame):
             min-height: 20px;
         }}
         QLineEdit:focus {{
-            border: 2px solid #4f46e5;
+            border: 1px solid #4f46e5;
             background-color: #ffffff;
         }}
         QRadioButton {{
