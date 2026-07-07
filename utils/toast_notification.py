@@ -1,8 +1,7 @@
 import logging
 from PyQt6.QtWidgets import (QWidget, QFrame, QLabel, QPushButton, QVBoxLayout, QGridLayout, QGraphicsDropShadowEffect)
 from PyQt6.QtCore import (Qt, QPropertyAnimation, QEasingCurve, QTimer, QSize, pyqtProperty)
-from PyQt6.QtGui import QColor, QFont
-
+from PyQt6.QtGui import QColor, QFont, QShortcut, QKeySequence
 logger = logging.getLogger(__name__)
 
 class MessageManager:
@@ -156,10 +155,16 @@ class ToastNotification(QWidget):
         self.fade_in.setEasingCurve(QEasingCurve.Type.OutCubic)
         self.fade_in.start()
 
+
         if duration:
             QTimer.singleShot(duration, self.close_alert)
         else:
             QTimer.singleShot(5000, self.close_alert)
+            
+        # ADD THESE LINES HERE
+        self.esc_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Escape), self)
+        self.esc_shortcut.setContext(Qt.ShortcutContext.ApplicationShortcut) 
+        self.esc_shortcut.activated.connect(self.close_alert)
 
     def close_alert(self):
         logger.debug("Closing ToastNotification alert")
@@ -459,6 +464,12 @@ class PatientSuccessModal(QWidget):
         QTimer.singleShot(100, self.icon_anim.start)
 
         QTimer.singleShot(self.duration, self.close_modal)
+
+        # ADD THESE LINES HERE
+        self.esc_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Escape), self)
+        # We need this to ensure it catches the keypress even if the widget doesn't have strict focus
+        self.esc_shortcut.setContext(Qt.ShortcutContext.ApplicationShortcut) 
+        self.esc_shortcut.activated.connect(self.close_modal)
 
     def close_modal(self):
         self.hide_anim = QPropertyAnimation(self, b"windowOpacity")
