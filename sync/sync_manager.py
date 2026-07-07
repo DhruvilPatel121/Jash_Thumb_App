@@ -67,6 +67,8 @@ class SyncManager:
                     "$set": {
                         "email": atlas_org.get("email"),
                         "password": atlas_org.get("password"),
+                        "name": atlas_org.get("name"),
+                        "address": atlas_org.get("address"),
                         "staff_password": atlas_org.get("staff_password"),
                         "is_locked": atlas_org.get("is_locked"),
                         "valid_upto": atlas_org.get("valid_upto"),
@@ -80,10 +82,8 @@ class SyncManager:
                 {"_id": organization_id},
                 {
                     "$set": {
-                        "email": local_org.get("email"),
                         "password": local_org.get("password"),
                         "staff_password": local_org.get("staff_password"),
-                        "is_locked": local_org.get("is_locked"),
                         "updated_at": local_time 
                     }
                 }
