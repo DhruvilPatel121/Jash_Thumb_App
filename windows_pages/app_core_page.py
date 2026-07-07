@@ -235,23 +235,23 @@ class AppCorePage(QWidget):
         if current_index == 0:
             logger.debug("F5: Reloading Dashboard data")
             self.dashboard_page.load_initial_data()
-            print("Dashboard data reloaded on F5")
+            # print("Dashboard data reloaded on F5")
             
         elif current_index == 1:
             logger.debug("F5: Clearing Registration Form")
             if hasattr(self.registration_page, 'clear_registration_form'):
                 self.registration_page.clear_registration_form()
                 logger.debug("Registration form cleared")
-                print("Registration form cleared on F5")
+                # print("Registration form cleared on F5")
         elif current_index == 2:
             logger.debug("F5: Reloading Patient Page data")
             if hasattr(self.patient_page, 'refresh_patient_page'):
                 self.patient_page.refresh_patient_page()
-                print("Patient page only refreshed on F5")
+                # print("Patient page only refreshed on F5")
             else:
                 self.patient_page.load_patients()
                 self.patient_page.load_patient_counts()
-                print("Patient count data reloaded on F5")
+                # print("Patient count data reloaded on F5")
 
     def go_to_dashboard(self):
         logger.info("Navigating to dashboard page")
