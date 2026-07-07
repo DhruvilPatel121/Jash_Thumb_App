@@ -315,11 +315,12 @@ class RegistrationPage(QWidget):
             border: 1px solid #E2E8F0;
             border-radius: 8px;
             padding: 10px 20px;
-            font-size: 12px;
+            line-height: 25px;
+            font-size: 14px;
         }
 
         QLineEdit:focus{
-            border: 2px solid #5C62D6; /* Teal focus border */
+            border: 1px solid #5C62D6; /* Teal focus border */
         }
         """
 
