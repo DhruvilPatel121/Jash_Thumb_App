@@ -192,7 +192,7 @@ class RegistrationPage(QWidget):
         self.problem_label = QLabel("Problem")
         self.consultancy_label = QLabel("Consultancy Fee")
         self.payment_label = QLabel("Payment Per Day")
-        self.total_days_label = QLabel("Total Days")
+        self.total_days_label = QLabel("Paid per Days")
 
         label_style = """
         QLabel{
