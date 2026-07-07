@@ -1,5 +1,6 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QStackedWidget, QPushButton
 from PyQt6.QtCore import QPropertyAnimation, QEasingCurve, QRect, Qt
+from PyQt6.QtGui import QShortcut, QKeySequence # <--- ADD THIS LINE
 import logging
 from utils.sidebar import Sidebar 
 from sync.sync_worker import SyncWorker
@@ -111,6 +112,9 @@ class AppCorePage(QWidget):
         logger.debug("Sidebar active page set to dashboard")
         
         self.update_role_access("Staff")
+        self.f5_shortcut = QShortcut(QKeySequence(Qt.Key.Key_F5), self)
+        self.f5_shortcut.setContext(Qt.ShortcutContext.ApplicationShortcut)
+        self.f5_shortcut.activated.connect(self.refresh_active_page)
         logger.info("AppCorePage UI setup completed")
     
     def update_role_access(self, role):
@@ -195,6 +199,7 @@ class AppCorePage(QWidget):
             
         self.animation.start()
         logger.debug("Sidebar toggle animation started")
+        
     def close_all_page_popups(self):
         logger.debug("Closing all page popups")
         for i in range(self.content_stack.count()):
@@ -222,6 +227,31 @@ class AppCorePage(QWidget):
         if hasattr(self.registration_page, 'clear_registration_form'):
             self.registration_page.clear_registration_form()
             logger.debug("Registration form cleared")
+
+    def refresh_active_page(self):
+        current_index = self.content_stack.currentIndex()
+        logger.info("F5 pressed. Current stack index: %s", current_index)
+        
+        if current_index == 0:
+            logger.debug("F5: Reloading Dashboard data")
+            self.dashboard_page.load_initial_data()
+            print("Dashboard data reloaded on F5")
+            
+        elif current_index == 1:
+            logger.debug("F5: Clearing Registration Form")
+            if hasattr(self.registration_page, 'clear_registration_form'):
+                self.registration_page.clear_registration_form()
+                logger.debug("Registration form cleared")
+                print("Registration form cleared on F5")
+        elif current_index == 2:
+            logger.debug("F5: Reloading Patient Page data")
+            if hasattr(self.patient_page, 'refresh_patient_page'):
+                self.patient_page.refresh_patient_page()
+                print("Patient page only refreshed on F5")
+            else:
+                self.patient_page.load_patients()
+                self.patient_page.load_patient_counts()
+                print("Patient count data reloaded on F5")
 
     def go_to_dashboard(self):
         logger.info("Navigating to dashboard page")
