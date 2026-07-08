@@ -47,7 +47,10 @@ def open_role_switch_popup(parent, on_success_callback):
     pwd_layout.addWidget(pwd_input)
 
     toggle_btn = QPushButton("👁️")
-    toggle_btn.setFixedSize(60, 42) 
+    toggle_btn.setFixedSize(60, 42)
+    toggle_btn.setAutoDefault(False)
+    toggle_btn.setDefault(False)
+    toggle_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
     toggle_btn.setStyleSheet("""
         QPushButton { background-color: #F8FAFC; border: 1px solid #CBD5E1; border-radius: 10px; font-size: 13px; font-weight: 600; color: #475569; }
         QPushButton:hover { background-color: #E2E8F0; color: #0F172A; }
@@ -73,6 +76,9 @@ def open_role_switch_popup(parent, on_success_callback):
     btn = QPushButton("Switch to Admin")
     btn.setFixedHeight(42)
     btn.setCursor(Qt.CursorShape.PointingHandCursor)
+    btn.setDefault(True)
+    btn.setAutoDefault(True)
+    btn.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
     layout.addWidget(btn)
 
     def verify_password():
@@ -101,7 +107,7 @@ def open_role_switch_popup(parent, on_success_callback):
             pwd_input.setFocus()
 
     btn.clicked.connect(verify_password)
-    pwd_input.returnPressed.connect(verify_password)
+    pwd_input.returnPressed.connect(btn.click)
     dialog.exec()
 
 
