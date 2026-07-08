@@ -43,6 +43,9 @@ def open_admin_password_dialog(parent):
         t_btn = QPushButton("👁️")
         t_btn.setFixedSize(65, 42)
         t_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        t_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        t_btn.setAutoDefault(False)
+        t_btn.setDefault(False)
         t_btn.setStyleSheet("""
             QPushButton { 
                 background-color: #F8FAFC; 
@@ -89,6 +92,8 @@ def open_admin_password_dialog(parent):
     btn = QPushButton("Update Password")
     btn.setFixedHeight(42)
     btn.setCursor(Qt.CursorShape.PointingHandCursor)
+    btn.setDefault(True)
+    btn.setAutoDefault(True)
     layout.addWidget(btn)
 
     # Backend Logic and Validation
@@ -103,7 +108,7 @@ def open_admin_password_dialog(parent):
             logger.warning("Admin password update failed: missing required fields")
             error_label.setText("All fields are required.")
             return
-        
+
         if new_pwd != confirm_pwd:
             logger.warning("Admin password update failed: new password and confirm password mismatch")
             error_label.setText("New passwords do not match.")
@@ -111,7 +116,7 @@ def open_admin_password_dialog(parent):
 
         repository = OrganizationRepository()
         org_data = repository.get_by_id(Session.organization_id)
-        
+
         if org_data is None:
             logger.error("Admin password update failed: organization record not found for organization_id=%s", Session.organization_id)
             error_label.setText("Database error. Could not update.")
@@ -132,16 +137,20 @@ def open_admin_password_dialog(parent):
             logger.warning("Admin password update failed: new password same as old password for organization_id=%s", Session.organization_id)
             error_label.setText("New password cannot be the same as the old password.")
             return
-        
+
         success = repository.update_admin_password(Session.organization_id, hashed_new)
-        
+
         if success:
             logger.info("Admin password updated successfully for organization_id=%s", Session.organization_id)
             ToastNotification.show_toast(parent, "success", "Success", "Admin password updated successfully.", 3000)
-            dialog.accept() 
+            dialog.accept()
         else:
             logger.error("Admin password update failed during repository update for organization_id=%s", Session.organization_id)
             error_label.setText("Database error. Could not update.")
 
+    old_pwd_input.returnPressed.connect(update_password_logic)
+    new_pwd_input.returnPressed.connect(update_password_logic)
+    confirm_pwd_input.returnPressed.connect(update_password_logic)
     btn.clicked.connect(update_password_logic)
+
     dialog.exec()
