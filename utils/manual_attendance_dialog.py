@@ -1,6 +1,6 @@
 import logging
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QLabel, QListWidget, 
-                             QListWidgetItem, QPushButton, QLineEdit)
+                             QListWidgetItem, QPushButton, QLineEdit, QFrame)
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QCursor
 from datetime import datetime
@@ -23,12 +23,12 @@ class ManualAttendanceDialog(QDialog):
         self.setFixedSize(550, 750) 
 
         main_layout = QVBoxLayout(self)
-        # માર્જિન ઓછું કર્યું છે કારણ કે હવે પડછાયા માટે જગ્યા છોડવાની જરૂર નથી
         main_layout.setContentsMargins(0, 0, 0, 0)
 
-        self.bg_frame = QDialog()
+        # FIX: Use QFrame instead of QDialog, and pass 'self' as the parent
+        self.bg_frame = QFrame(self)
         self.bg_frame.setStyleSheet("""
-            QDialog { 
+            QFrame { 
                 background-color: #FFFFFF; 
                 border-radius: 16px; 
                 border: 1px solid #E2E8F0;
