@@ -39,8 +39,8 @@ class OrganizationRepository:
         if not organization:
             logger.warning("Organization not found for role verification: %s", organization_id)
             return False
-        print(f"Organization found for role verification: {organization['password']}")  # Debugging line
-        print(f"Provided hashed password: {hashed_password}")  # Debugging line
+        # print(f"Organization found for role verification: {organization['password']}")  # Debugging line
+        # print(f"Provided hashed password: {hashed_password}")  # Debugging line
         return organization.get("password") == hashed_password
 
     def get_by_id(self, organization_id):
