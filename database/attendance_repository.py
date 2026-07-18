@@ -152,25 +152,6 @@ class AttendanceRepository:
             return 0
         
 
-    # def upgrade_consulting_to_treatment(self, patient_id):
-    #     today_date = datetime.now().strftime("%Y-%m-%d")
-    #     try:
-    #         record = self.attendance.find_one({
-    #             "patient_id": str(patient_id),
-    #             "attendance_date": today_date,
-    #             "used_days": 0
-    #         })
-    #         if record:
-    #             organization_id = record["organization_id"]
-    #             attendance_count = self.get_patient_attendance_count(organization_id, str(patient_id))
-                
-    #             self.attendance.update_one(
-    #                 {"_id": record["_id"]},
-    #                 {"$set": {"used_days": attendance_count + 1}}
-    #             )
-    #     except Exception as error:
-    #         print(f"Upgrade consulting error: {error}")
-
     def upgrade_consulting_to_treatment(
         self,
         patient_id,
