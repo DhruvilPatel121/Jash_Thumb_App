@@ -19,6 +19,10 @@ class AppCorePage(QWidget):
         
         
     def setup_ui(self):
+        print("Setting up UI in AppCorePage open")
+        self.sync_worker = SyncWorker()
+        self.sync_worker.start_worker()
+        print("Sync Worker started in AppCorePage")
         self.main_layout = QVBoxLayout()
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.main_layout.setSpacing(0)
@@ -85,8 +89,7 @@ class AppCorePage(QWidget):
         self.patient_page.role_changed.connect(self.update_role_access)
         
         self.sidebar.set_active_page("dashboard")
-        self.sync_worker = SyncWorker()
-        self.sync_worker.start_worker()
+        
 
         self.update_role_access("Staff")
 
