@@ -88,3 +88,5 @@ class LicenseExpiredPage(QWidget):
         self.body_layout.addStretch()
 
         self.main_layout.addWidget(self.body)
+
+       
