@@ -171,12 +171,16 @@ class AttendanceRepository:
             for future_record in future_attendances:
                 record_id = future_record["_id"]
                 try:
-                    result = self.attendance.update_one(
+                    # Use executor for consistent sync to Atlas
+                    update_query = {"$inc": {"used_days": -1}}
+                    result = self.executor.execute(
+                        "UPDATE",
+                        "attendance",
                         {"_id": record_id},
-                        {"$inc": {"used_days": -1}}
+                        update_query
                     )
                     
-                    if result.modified_count > 0:
+                    if result:
                         updated_records.append(record_id)
                     else:
                         # Update failed for this record
@@ -215,15 +219,19 @@ class AttendanceRepository:
     def _rollback_attendance_updates(self, record_ids):
         """
         Rollback all updated records by incrementing used_days back by 1.
+        Uses executor for consistent sync to Atlas.
         
         Args:
             record_ids: List of record IDs to rollback
         """
         try:
             for record_id in record_ids:
-                self.attendance.update_one(
+                rollback_query = {"$inc": {"used_days": 1}}
+                self.executor.execute(
+                    "UPDATE",
+                    "attendance",
                     {"_id": record_id},
-                    {"$inc": {"used_days": 1}}
+                    rollback_query
                 )
             logging.info(f"Rollback completed for {len(record_ids)} records")
         except Exception as error:
@@ -238,6 +246,7 @@ class AttendanceRepository:
         """
         Delete an attendance record and update future attendance logs accordingly.
         Implements complete rollback if any operation fails.
+        Uses executor for consistent sync to both Compass and Atlas.
         
         Args:
             attendance_id: ID of the attendance record to delete
@@ -278,7 +287,7 @@ class AttendanceRepository:
                     # Rollback already handled in update_attendance_logs
                     return False
             
-            # 3. Delete attendance
+            # 3. Delete attendance using executor for Atlas sync
             delete_result = self.executor.execute(
                 "DELETE",
                 "attendance",
