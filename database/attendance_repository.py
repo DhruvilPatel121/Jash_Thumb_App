@@ -265,7 +265,6 @@ class AttendanceRepository:
             )
             
             if not attendance:
-                print(f"Attendance record not found: {attendance_id}")
                 return False
             
             organization_id = attendance.get("organization_id")
@@ -273,7 +272,7 @@ class AttendanceRepository:
             attendance_date = attendance.get("attendance_date")
             used_days = attendance.get("used_days", 0)
             
-            print(f"Attendance details before deletion: {attendance}")
+            # print(f"Attendance details before deletion: {attendance}")
             
             updated_records = []
             
@@ -287,7 +286,7 @@ class AttendanceRepository:
                 )
                 
                 if not update_success:
-                    print(f"Failed to update attendance logs for attendance_id: {attendance_id}")
+                    # print(f"Failed to update attendance logs for attendance_id: {attendance_id}")
                     # Rollback already handled in update_attendance_logs
                     return False
             
@@ -299,17 +298,17 @@ class AttendanceRepository:
             )
             
             if not delete_result:
-                print(f"Failed to delete attendance record: {attendance_id}")
+                # print(f"Failed to delete attendance record: {attendance_id}")
                 # Rollback the log updates since deletion failed
                 if updated_records:
                     self._rollback_attendance_updates(updated_records)
                 return False
             
-            print(f"Successfully deleted attendance record: {attendance_id}")
+            # print(f"Successfully deleted attendance record: {attendance_id}")
             return True
             
         except Exception as error:
-            print(f"Error deleting attendance: {str(error)}")
+            # print(f"Error deleting attendance: {str(error)}")
             logging.error(
                 f"Delete Attendance Error | "
                 f"Attendance ID: {attendance_id} | "
@@ -358,7 +357,6 @@ class AttendanceRepository:
                 organization_id,
                 str(patient_id)
             )
-            print(attendance_count)
             
             update_query = {
                 "$set": {
