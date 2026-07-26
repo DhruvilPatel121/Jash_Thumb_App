@@ -5,16 +5,19 @@ from sync.sync_worker import SyncWorker
 from windows_pages.pages.dashbord import DashboardPage
 from windows_pages.pages.registration_window import RegistrationPage
 from windows_pages.pages.patient_window import PatientPage
-
+from utils.license_manager import LicenseManager
+from utils.session import Session
 class AppCorePage(QWidget):
     
     def __init__(self, db, main_window):
         super().__init__()
         self.db = db
         self.main_window = main_window
+        self.license_manager = LicenseManager()
         self.sidebar_open = False
         self.setup_ui()
-
+        
+        
     def setup_ui(self):
         self.main_layout = QVBoxLayout()
         self.main_layout.setContentsMargins(0, 0, 0, 0)
@@ -23,7 +26,18 @@ class AppCorePage(QWidget):
 
         self.content_stack = QStackedWidget()
         self.main_layout.addWidget(self.content_stack)
+        is_valid = self.license_manager.check_license_validity(
+            Session.organization_id,
+            self
+        )
 
+        if not is_valid:
+            from windows_pages.pages.expiry import LicenseExpiredPage
+            self.expired_page = LicenseExpiredPage()
+            self.content_stack.addWidget(self.expired_page)
+            self.content_stack.setCurrentWidget(self.expired_page)
+            
+            return
         self.dashboard_page = DashboardPage(self.db)
         self.registration_page = RegistrationPage(self.db)
         self.patient_page = PatientPage(self.db)
@@ -180,6 +194,7 @@ class AppCorePage(QWidget):
         self.close_all_page_popups()
         self.stop_active_scanners()
         self.clear_search_bars()
+        
         self.content_stack.setCurrentIndex(0)
         self.sidebar.set_active_page("dashboard")
         self.dashboard_page.load_initial_data()
