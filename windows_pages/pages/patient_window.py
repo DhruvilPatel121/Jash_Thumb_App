@@ -522,7 +522,7 @@ class PatientPage(QWidget):
             patient_name = patient.get("name", "")
             patient_id = str(patient["_id"])
             created_at = patient.get("created_at")
-            consultancy_fees = int(patient.get("consultancy_fees") or 0) 
+            consultancy_fees = patient.get("consultancy_fees") or ""
             name_label = HoverLabel(patient_name, patient_id, created_at, consultancy_fees)
             name_label.clicked.connect(self.show_patient_history)
 

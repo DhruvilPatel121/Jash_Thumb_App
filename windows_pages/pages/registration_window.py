@@ -1,5 +1,5 @@
 import os
-from PyQt6.QtWidgets import (QWidget,QButtonGroup,QHBoxLayout,QVBoxLayout,QPushButton,QFrame, QLabel, QRadioButton)
+from PyQt6.QtWidgets import (QWidget,QButtonGroup,QHBoxLayout,QVBoxLayout,QCheckBox,QPushButton,QFrame, QLabel, QRadioButton)
 from PyQt6.QtCore import Qt,QDateTime,QTimer,QEvent,QSize,QRegularExpression
 from PyQt6.QtGui import QPixmap,QMovie,QRegularExpressionValidator
 from PyQt6.QtWidgets import QFormLayout, QLineEdit
@@ -237,14 +237,41 @@ class RegistrationPage(QWidget):
         age_regex = QRegularExpression(r"^[0-9]{1,3}(\.(1[0-1]?|[2-9])?)?$")
         age_validator = QRegularExpressionValidator(age_regex)
         self.age_input.setValidator(age_validator)
-        self.payment_input.setValidator(number_validator)
+        # self.payment_input.setValidator(number_validator)
         self.total_days_input.setValidator(number_validator)
-        self.payment_input.setMaxLength(7)
+        # self.payment_input.setMaxLength(7)
         self.total_days_input.setMaxLength(4)
         self.mobile_input.setValidator(number_validator)
-        self.consultancy_input.setValidator(number_validator)
+        # self.consultancy_input.setValidator(number_validator)
+        # self.only_consulting_cb = QCheckBox("Only Consulting")
+        # self.only_consulting_cb.setCursor(Qt.CursorShape.PointingHandCursor)
+        # self.only_consulting_cb.toggled.connect(self.toggle_payment_fields)
+        # self.only_consulting_cb.setStyleSheet("""
+        #     QCheckBox {
+        #         color: #DC2626;
+        #         font-size: 14px;
+        #         font-weight: bold;
+        #         padding-left: 5px;
+        #         background: transparent;
+        #         border: none;
+        #     }
+        #     QCheckBox::indicator { 
+        #         width: 18px; 
+        #         height: 18px;
+        #         border: 2px solid #CBD5E1;
+        #         border-radius: 4px;
+        #         background: white;
+        #     }
+        #     QCheckBox::indicator:checked {
+        #         background-color: #DC2626;
+        #         border: 2px solid #DC2626;
+        #     }
+        # """)
 
-
+        consultancy_layout = QHBoxLayout()
+        consultancy_layout.setSpacing(10)
+        consultancy_layout.addWidget(self.consultancy_input)
+        # consultancy_layout.addWidget(self.only_consulting_cb)
         self.neuro_radio = QRadioButton("Neuro")
         self.ortho_radio = QRadioButton("Ortho")
         self.dept_group = QButtonGroup()
@@ -338,7 +365,8 @@ class RegistrationPage(QWidget):
         self.form_layout.addRow(self.name_label, self.name_input)
         self.form_layout.addRow(self.mobile_label, self.mobile_input)
         self.form_layout.addRow(self.age_label, self.age_input)
-        self.form_layout.addRow(self.consultancy_label, self.consultancy_input)
+        self.form_layout.addRow(self.consultancy_label, consultancy_layout) 
+        # self.only_consulting_cb.installEventFilter(self)
         self.form_layout.addRow(self.payment_label,self.payment_input)
         self.form_layout.addRow(self.total_days_label,self.total_days_input)
         self.form_layout.addRow(self.gender_label,gender_layout)
@@ -849,9 +877,11 @@ class RegistrationPage(QWidget):
         elif self.ortho_radio.isChecked():
             department = "Ortho"
         problem = self.problem_input.text().strip()
-        payment_per_day = int(self.payment_input.text().strip() or 0)
+        payment_per_day = self.payment_input.text().strip() or ""
+        
         paid_days = int(self.total_days_input.text().strip() or 0)
-        consultancy_fees = int(self.consultancy_input.text().strip() or 0)
+        consultancy_fees = self.consultancy_input.text().strip() or ""
+        # only_consulting = self.only_consulting_cb.isChecked()
 
         try:
             existing_patient =self.is_fingerprint_already_registered()
@@ -877,6 +907,7 @@ class RegistrationPage(QWidget):
                 consultancy_fees,
                 payment_per_day,
                 paid_days,
+                # only_consulting,
                 self.template_bytes
             )
             if patient_id:
@@ -911,12 +942,51 @@ class RegistrationPage(QWidget):
         self.date_label.setText(f"📅 {current_date}")
         self.time_label.setText(f"🕒 {current_time}")
 
+    
+    def toggle_payment_fields(self, checked):
+        self.payment_input.setDisabled(checked)
+        self.total_days_input.setDisabled(checked)
+        
+        if checked:
+            self.payment_input.clear()
+            self.total_days_input.clear()
+            
+            disabled_style = """
+                QLineEdit{
+                    background-color: #F1F5F9;
+                    color: #94A3B8;
+                    border: 1px solid #E2E8F0;
+                    border-radius: 8px;
+                    padding: 10px 15px;
+                    font-size: 14px;
+                }
+            """
+            self.payment_input.setStyleSheet(disabled_style)
+            self.total_days_input.setStyleSheet(disabled_style)
+        else:
+            normal_style = """
+                QLineEdit{
+                    background-color: #FFFFFF;
+                    color: #1E293B;
+                    border: 1px solid #E2E8F0;
+                    border-radius: 8px;
+                    padding: 10px 15px;
+                    font-size: 14px;
+                }
+                QLineEdit:focus{
+                    border: 2px solid #5C62D6;
+                }
+            """
+            self.payment_input.setStyleSheet(normal_style)
+            self.total_days_input.setStyleSheet(normal_style)
+
     def clear_registration_form(self):
 
         self.name_input.clear()
         self.mobile_input.clear()
         self.age_input.clear()
         self.problem_input.clear()
+        # self.only_consulting_cb.setChecked(False)
         self.payment_input.clear()
         self.total_days_input.clear()
         self.consultancy_input.clear()

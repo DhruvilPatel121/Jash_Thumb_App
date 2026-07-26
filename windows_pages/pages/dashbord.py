@@ -1,5 +1,5 @@
 
-from PyQt6.QtWidgets import (QWidget,QLineEdit,QHBoxLayout,QSizePolicy,QPushButton,QFrame, QLabel, QTableWidget, QTableWidgetItem,QHeaderView,QAbstractItemView,QDialog, QVBoxLayout, QCalendarWidget,QScrollArea,QGraphicsDropShadowEffect)
+from PyQt6.QtWidgets import (QWidget,QLineEdit,QMessageBox,QHBoxLayout,QSizePolicy,QPushButton,QFrame, QLabel, QTableWidget, QTableWidgetItem,QHeaderView,QAbstractItemView,QDialog, QVBoxLayout, QCalendarWidget,QScrollArea,QGraphicsDropShadowEffect)
 from PyQt6.QtCore import Qt, QTimer, QDateTime,QDate,pyqtSignal
 from PyQt6.QtGui import QFont
 from PyQt6.QtGui import QColor
@@ -14,6 +14,7 @@ from PyQt6.QtWidgets import QWidget
 from PyQt6.QtGui import QDesktopServices
 from PyQt6.QtCore import QUrl
 import hashlib
+import sys
 
 class ActionPopup(QWidget):
     def __init__(self, parent_widget, current_state):
@@ -677,6 +678,9 @@ class DashboardPage(QWidget):
             paid_days = int(record.get("paid_days", 0) or 0)
             used_days = int(record.get("used_days", 0) or 0)
             is_payment_due = used_days > paid_days
+            print("dashboard",is_payment_due)
+            last_day = paid_days - used_days
+            print(f"dashboard   last_day: {last_day} , paid_days: {paid_days}, used_days: {used_days}")
 
             problem = record.get("problem", "").strip()
             if not problem:
@@ -716,6 +720,10 @@ class DashboardPage(QWidget):
                     item.setForeground(QColor("#94A3B8")) 
                 elif is_payment_due:
                     item.setForeground(QColor("#DC2626"))
+                    item.setBackground(QColor("#DC2626"))
+                elif last_day == 1:
+                    item.setForeground(QColor("#FFBF00"))
+                    item.setBackground(QColor("#FFBF00"))
                 target_table.setItem(row_idx, col_index, item)
             
             queue_no = record.get('queue_no', row_idx + 1)
@@ -740,10 +748,21 @@ class DashboardPage(QWidget):
                     background-color:#FEE2E2;
                     color:#DC2626;
                     border-radius:16px;
+                    border-color:#DC2626;
                     font-size:14px;
                     font-weight:700;
                 }
                 """)
+            elif last_day == 1:
+                badge.setStyleSheet("""
+                QLabel{
+                    background-color:#FFF3CD;
+                    color:#FFBF00;
+                    border-radius:16px;
+                    font-size:14px;
+                    font-weight:700;
+                }
+                """)    
 
             else:
                 badge.setStyleSheet("""
@@ -899,6 +918,12 @@ class DashboardPage(QWidget):
             self.attendance_worker.stop_attendance()
 
     def on_attendance_marked(self, patient):
+        from database.attendance_repository import AttendanceRepository
+        attendance_repo = AttendanceRepository()
+        patient_att = attendance_repo.get_attendance_by_patient_id(patient.get('_id'))
+        if patient_att:
+            patient['used_days'] = patient_att['used_days']
+            patient['paid_days'] = patient_att['paid_days']
         PatientSuccessModal.show_modal(
             self,
             serial_no=patient.get('token_no', 'N/A'),
@@ -907,6 +932,8 @@ class DashboardPage(QWidget):
             gender=patient.get('gender', 'N/A'),
             department=patient.get('department', 'N/A'),
             problem=patient.get('problem', 'N/A'),
+            used_days=patient.get('used_days', 'N/A'),
+            paid_days=patient.get('paid_days', 'N/A'),
             duration=5000
         )
         self.load_today_logs()
@@ -988,3 +1015,36 @@ class DashboardPage(QWidget):
     def open_manual_attendance_dialog(self):
         dialog = ManualAttendanceDialog(self, self.attendance_worker)
         dialog.exec()
+
+    # def check_software_expiry(self):
+    #     try:
+    #         # Database madhun organization cha data ghya
+    #         org_data = self.db.organizations.find_one({"_id": Session.organization_id})
+            
+    #         # Jar database madhye 'valid_upto' field asel tarach check kara
+    #         if org_data and "valid_upto" in org_data:
+    #             expiry_date_str = org_data["valid_upto"]
+    #             expiry_date = datetime.strptime(expiry_date_str, "%Y-%m-%d")
+    #             current_date = datetime.now()
+                
+    #             # Divsancha farak (difference) kadha
+    #             days_left = (expiry_date - current_date).days
+                
+    #             if days_left < 0:
+    #                 # Jar divas 0 kiva tya peksha kami asel tar software band kara
+    #                 QMessageBox.critical(
+    #                     self, 
+    #                     "Software Expired", 
+    #                     "Tumche software license expire jhale aahe. Krupaya Shivvilon Solution shi sampark sadha."
+    #                 )
+    #                 sys.exit() # He line software tithech band karel
+                    
+    #             elif days_left <= 15:
+    #                 # 15 divas baki asel tar warning dya
+    #                 QMessageBox.warning(
+    #                     self, 
+    #                     "License Expiring Soon", 
+    #                     f"Tumche license {days_left} divsat expire hoil. Velevar renew kara."
+    #                 )
+    #     except Exception as e:
+    #         print(f"Expiry check error: {e}")
