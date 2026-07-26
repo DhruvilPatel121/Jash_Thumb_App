@@ -245,12 +245,14 @@ class SuccessIcon(QWidget):
 
 class PatientSuccessModal(QWidget):
     @classmethod
-    def show_modal(cls, parent, name, age, gender, department, problem, serial_no=None, duration=4000):
-        modal = cls(parent, name, age, gender, department, problem, serial_no, duration)
+    def show_modal(cls, parent, name, age, gender, department, problem, used_days, paid_days, serial_no=None, duration=2500 ):
+        modal = cls(parent, name, age, gender, department, problem, used_days, paid_days, serial_no, duration)
         modal.show()
 
-    def __init__(self, parent, name, age, gender, department, problem, serial_no=None, duration=4000):
+    def __init__(self, parent, name, age, gender, department, problem, used_days, paid_days, serial_no=None, duration=2500):
         super().__init__(parent)
+        is_payment_due = int(used_days) > int(paid_days)
+        last_day = int(paid_days) - int(used_days)
         self.duration = duration
         self.resize(parent.width(), parent.height())
         self.setStyleSheet("""
@@ -322,25 +324,61 @@ class PatientSuccessModal(QWidget):
 
         # --- DEDICATED SERIAL NUMBER BOX ---
         if serial_no:
+            # Default (Paid)
+            box_bg = "#DCFCE7"
+            border_color = "#22C55E"
+            text_color = "#14532D"
+            label_color = "#166534"
+
+            # Payment Due (Highest Priority)
+            if is_payment_due:
+                box_bg = "#FEE2E2"
+                border_color = "#DC2626"
+                text_color = "#DC2626"
+                label_color = "#B91C1C"
+
+            # Last Day Remaining
+            elif last_day == 1:
+                box_bg = "#FFF7D6"
+                border_color = "#FFBF00"
+                text_color = "#B7791F"
+                label_color = "#A16207"
+
             serial_box = QFrame()
             serial_box.setFixedHeight(55)
-            serial_box.setStyleSheet("""
-                QFrame {
-                    background-color: #DCFCE7; /* Light Green Background */
-                    border: 2px solid #22C55E; /* Darker Green Border */
+            serial_box.setStyleSheet(f"""
+                QFrame {{
+                    background-color: {box_bg};
+                    border: 2px solid {border_color};
                     border-radius: 12px;
-                }
+                }}
             """)
+
             serial_layout = QHBoxLayout(serial_box)
             serial_layout.setContentsMargins(20, 0, 20, 0)
-            
+
             sr_title = QLabel("Serial No:")
-            sr_title.setStyleSheet("color: #166534; font-size: 18px; font-weight: 700; border: none; background: transparent;")
-            
+            sr_title.setStyleSheet(f"""
+                QLabel {{
+                    color: {label_color};
+                    font-size: 18px;
+                    font-weight: 700;
+                    border: none;
+                    background: transparent;
+                }}
+            """)
+
             sr_value = QLabel(str(serial_no))
-            sr_value.setStyleSheet("color: #14532D; font-size: 22px; font-weight: 900; border: none; background: transparent;")
-            
-            # Center the text inside the box
+            sr_value.setStyleSheet(f"""
+                QLabel {{
+                    color: {text_color};
+                    font-size: 22px;
+                    font-weight: 900;
+                    border: none;
+                    background: transparent;
+                }}
+            """)
+
             serial_layout.addStretch()
             serial_layout.addWidget(sr_title)
             serial_layout.addSpacing(10)
@@ -348,7 +386,6 @@ class PatientSuccessModal(QWidget):
             serial_layout.addStretch()
 
             layout.addWidget(serial_box)
-
         # INFO CARD
         info_card = QFrame()
         info_card.setStyleSheet("""
