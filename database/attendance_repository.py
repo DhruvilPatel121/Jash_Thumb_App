@@ -140,7 +140,8 @@ class AttendanceRepository:
         try:
             return self.attendance.count_documents({
                 "organization_id": organization_id,
-                "patient_id": patient_id
+                "patient_id": patient_id,
+                "used_days": {"$gt": 0}  
             })
         except Exception as error:
             logging.error(
@@ -149,3 +150,90 @@ class AttendanceRepository:
                 exc_info=True
             )
             return 0
+        
+
+    # def upgrade_consulting_to_treatment(self, patient_id):
+    #     today_date = datetime.now().strftime("%Y-%m-%d")
+    #     try:
+    #         record = self.attendance.find_one({
+    #             "patient_id": str(patient_id),
+    #             "attendance_date": today_date,
+    #             "used_days": 0
+    #         })
+    #         if record:
+    #             organization_id = record["organization_id"]
+    #             attendance_count = self.get_patient_attendance_count(organization_id, str(patient_id))
+                
+    #             self.attendance.update_one(
+    #                 {"_id": record["_id"]},
+    #                 {"$set": {"used_days": attendance_count + 1}}
+    #             )
+    #     except Exception as error:
+    #         print(f"Upgrade consulting error: {error}")
+
+    def upgrade_consulting_to_treatment(
+        self,
+        patient_id,
+        payment_per_day,
+        paid_days,
+    ):
+        today_date = datetime.now().strftime("%Y-%m-%d")
+
+        try:
+            record = self.attendance.find_one({
+                "patient_id": str(patient_id),
+                "attendance_date": today_date,
+                "used_days": 0
+            })
+
+            if not record:
+                return
+
+            organization_id = record["organization_id"]
+
+            attendance_count = self.get_patient_attendance_count(
+                organization_id,
+                str(patient_id)
+            )
+            print(attendance_count)
+            self.attendance.update_one(
+                {"_id": record["_id"]},
+                {
+                    "$set": {
+                        "used_days": attendance_count + 1,
+                        "payment_per_day": payment_per_day,
+                        "paid_days": paid_days,
+                    }
+                }
+            )
+
+        except Exception as error:
+            print(f"Upgrade consulting error: {error}")
+
+    def get_attendance_by_patient_id(self, patient_id):
+        try:
+            attendance = self.attendance.find_one({"patient_id": str(patient_id)})
+            if attendance:
+                return attendance
+            else:
+                return []
+        except Exception as error:
+            logging.error(f"Get Attendance Error: {error}", exc_info=True)
+            return []
+
+    def downgrade_treatment_to_consulting(self, patient_id, payment_per_day, paid_days):
+        today_date = datetime.now().strftime("%Y-%m-%d")
+
+        self.attendance.update_one(
+            {
+                "patient_id": str(patient_id),
+                "attendance_date": today_date
+            },
+            {
+                "$set": {
+                    "used_days": 0,
+                    "payment_per_day": payment_per_day,
+                        "paid_days": paid_days,
+                }
+            }
+        )

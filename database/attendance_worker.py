@@ -1,9 +1,9 @@
-from PyQt6.QtCore import (QThread,pyqtSignal)
-from utils.scanner_manager import (ScannerManager)
-from utils.enrollment import (Enrollment)
-from utils.verification import (Verification)
-from database.patient_repository import (PatientRepository)
-from database.attendance_repository import (AttendanceRepository)
+from PyQt6.QtCore import QThread, pyqtSignal
+from utils.scanner_manager import ScannerManager
+from utils.enrollment import Enrollment
+from utils.verification import Verification
+from database.patient_repository import PatientRepository
+from database.attendance_repository import AttendanceRepository
 from utils.session import Session
 from datetime import datetime
 import logging
@@ -19,7 +19,6 @@ class AttendanceWorker(QThread):
     patient_not_found = pyqtSignal()
 
     def __init__(self):
-
         super().__init__()
         self.running = False
         self.processing = False
@@ -27,15 +26,13 @@ class AttendanceWorker(QThread):
         self.scanner = ScannerManager()
         self.enrollment = Enrollment(self.scanner)
         self.verification = Verification(self.scanner)
-        self.patient_repository = (PatientRepository())
-        self.attendance_repository = (AttendanceRepository())
+        self.patient_repository = PatientRepository()
+        self.attendance_repository = AttendanceRepository()
         self.cached_patients = []
-        
+
     def start_attendance(self):
         self.organization_id = Session.organization_id
-        self.cached_patients = (
-            self.patient_repository
-            .get_all_by_organization(self.organization_id))
+        self.cached_patients = self.patient_repository.get_all_by_organization(self.organization_id)
         self.running = True
         self.start()
 
@@ -57,61 +54,83 @@ class AttendanceWorker(QThread):
             logging.error("Scanner Initialize Failed")
             return False
 
-        self.scanner.sdk.SGFPM_SetTemplateFormat(
-            self.scanner.hfpm,
-            0x0200
-        )
+        self.scanner.sdk.SGFPM_SetTemplateFormat(self.scanner.hfpm, 0x0200)
 
-        # return True
         if not self.scanner.open_device():
             self.scanner_connection_failed.emit("Scanner Not Connected")
             logging.error("Scanner Not Connected")
             return False
 
-        result = (self.scanner.sdk.SGFPM_EnableSmartCapture(self.scanner.hfpm,True))
+        self.scanner.sdk.SGFPM_EnableSmartCapture(self.scanner.hfpm, True)
         self.scanner_connected.emit()
         return True
-    
+
     def close_scanner(self):
         try:
             self.scanner.close_device()
             self.scanner.terminate()
             self.scanner_disconnected.emit()
         except Exception as error:
-            logging.error(f"Scanner Close Error: {error}",exc_info=True)
+            logging.error(f"Scanner Close Error: {error}", exc_info=True)
 
-    def process_attendance(self,image):
+    def process_attendance(self, image):
         try:
-            template = (self.enrollment.create_template_bytes(image))
+            template = self.enrollment.create_template_bytes(image)
             if not template:
                 return
-            patient = (self.verification.identify_patient_attendance(template,self.cached_patients))
+            
+            patient = self.verification.identify_patient_attendance(template, self.cached_patients)
             if not patient:
                 self.patient_not_found.emit()
                 return
+
+            fresh_patient = self.patient_repository.patients.find_one({"_id": patient["_id"]})
+            if fresh_patient:
+                patient = fresh_patient
+
             current_time = datetime.now().strftime("%H:%M:%S")
             today_date = datetime.now().strftime("%Y-%m-%d")
-            attendance = (self.attendance_repository.is_attendance_taken_today(self.organization_id,str(patient["_id"]),today_date))
+            attendance = self.attendance_repository.is_attendance_taken_today(
+                self.organization_id, str(patient["_id"]), today_date
+            )
             if attendance:
-                self.already_taken.emit(
-                    patient["name"])
+                self.already_taken.emit(patient["name"])
                 return
+
             department = patient.get("department", "").strip()
-            
             if not department or department.lower() not in ["ortho", "neuro"]:
                 department = "Ortho"
-            
             patient["department"] = department
-            attendance_count = (
-                self.attendance_repository
-                .get_patient_attendance_count(
-                    self.organization_id,
-                    str(patient["_id"])
-                )
+
+            attendance_count = self.attendance_repository.get_patient_attendance_count(
+                self.organization_id, str(patient["_id"])
             )
-            used_days = attendance_count + 1
-            payment_per_day = patient.get("payment_per_day", 0)
-            paid_days = patient.get("paid_days", 0)
+
+            created_at = patient.get("created_at")
+            is_registration_day = False
+            if created_at:
+                reg_date = created_at.strftime("%Y-%m-%d") if isinstance(created_at, datetime) else str(created_at)[:10]
+                if reg_date == today_date:
+                    is_registration_day = True
+            elif attendance_count == 0:
+                is_registration_day = True
+
+            treatment_start_today = bool(patient.get("treatment_start_from_today", False))
+
+            if not treatment_start_today:
+                used_days = 0
+                payment_per_day = 0
+                paid_days = 0
+
+            else:
+                payment_per_day = patient.get("payment_per_day", 0)
+                paid_days = patient.get("paid_days", 0)
+
+                if attendance_count == 0:
+                    used_days = 1
+                else:
+                    used_days = attendance_count + 1
+
             self.attendance_repository.mark_attendance(
                 self.organization_id,
                 str(patient["_id"]),
@@ -126,26 +145,23 @@ class AttendanceWorker(QThread):
                 patient.get("problem", ""),
                 payment_per_day,
                 paid_days,
-                used_days
+                used_days,
             )
+
             patient["attendance_time"] = current_time
-            
             token_no = self.attendance_repository.get_department_attendance_count(
                 self.organization_id, today_date, department
             )
-            
             patient["token_no"] = token_no
             patient["display_department"] = department
 
             self.attendance_marked.emit(patient)
-
         finally:
             self.processing = False
 
-    def run(self):
 
-        
-        scanner_ready = (self.open_scanner())
+    def run(self):
+        scanner_ready = self.open_scanner()
         if not scanner_ready:
             self.running = False
             return
@@ -168,28 +184,27 @@ class AttendanceWorker(QThread):
                 self.processing = True
                 self.process_attendance(image)
             except Exception as error:
-                logging.error(f"Attendance Error: {error}",exc_info=True)
+                logging.error(f"Attendance Error: {error}", exc_info=True)
                 self.processing = False
                 self.finger_locked = False
-
                 continue
         self.close_scanner()
 
     def process_manual_attendance(self, patient):
-        """Processes attendance directly from the UI without scanner verification."""
         try:
             self.processing = True
-            
-            self.organization_id = Session.organization_id 
-            # -----------------------------------------------------
+            self.organization_id = Session.organization_id
+
+            fresh_patient = self.patient_repository.patients.find_one({"_id": patient["_id"]})
+            if fresh_patient:
+                patient = fresh_patient
 
             current_time = datetime.now().strftime("%H:%M:%S")
             today_date = datetime.now().strftime("%Y-%m-%d")
-            
+
             attendance = self.attendance_repository.is_attendance_taken_today(
                 self.organization_id, str(patient["_id"]), today_date
             )
-            
             if attendance:
                 self.already_taken.emit(patient["name"])
                 return
@@ -202,9 +217,31 @@ class AttendanceWorker(QThread):
             attendance_count = self.attendance_repository.get_patient_attendance_count(
                 self.organization_id, str(patient["_id"])
             )
-            used_days = attendance_count + 1
-            payment_per_day = patient.get("payment_per_day", 0)
-            paid_days = patient.get("paid_days", 0)
+
+            created_at = patient.get("created_at")
+            is_registration_day = False
+            if created_at:
+                reg_date = created_at.strftime("%Y-%m-%d") if isinstance(created_at, datetime) else str(created_at)[:10]
+                if reg_date == today_date:
+                    is_registration_day = True
+            elif attendance_count == 0:
+                is_registration_day = True
+
+            treatment_start_today = bool(patient.get("treatment_start_from_today", False))
+
+            if not treatment_start_today:
+                used_days = 0
+                payment_per_day = 0
+                paid_days = 0
+
+            else:
+                payment_per_day = patient.get("payment_per_day", 0)
+                paid_days = patient.get("paid_days", 0)
+
+                if attendance_count == 0:
+                    used_days = 1
+                else:
+                    used_days = attendance_count + 1
 
             self.attendance_repository.mark_attendance(
                 self.organization_id,
@@ -220,20 +257,21 @@ class AttendanceWorker(QThread):
                 patient.get("problem", ""),
                 payment_per_day,
                 paid_days,
-                used_days
+                used_days,
             )
-            
+
             patient["attendance_time"] = current_time
             token_no = self.attendance_repository.get_department_attendance_count(
                 self.organization_id, today_date, department
             )
-            
             patient["token_no"] = token_no
             patient["display_department"] = department
 
             self.attendance_marked.emit(patient)
-
         except Exception as error:
             logging.error(f"Manual Attendance Error: {error}", exc_info=True)
         finally:
             self.processing = False
+
+
+    

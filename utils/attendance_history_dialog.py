@@ -59,6 +59,7 @@ class AttendanceHistoryDialog(QFrame):
         self.paid_days_label = QLabel("0")
         self.used_days_label = QLabel("0")
         self.balance_days_label = QLabel("0")
+
         name_title = QLabel("Patient: ")
         name_title.setStyleSheet(label_style_title)
         
@@ -264,8 +265,14 @@ class AttendanceHistoryDialog(QFrame):
         PURPLE_CARD_STYLE = """
             QFrame { background-color: #FAF5FF; border: 2px solid #D8B4FE; border-radius: 8px; }
         """
+        ORANGE_CARD_STYLE = """
+            QFrame { background-color: #FFF7ED; border: 2px solid #FDBA74; border-radius: 8px; }
+        """
         PURPLE_DATE_STYLE = """
-            QLabel { background-color: #F3E8FF; color: #9333EA; font-weight: bold; font-size: 18px; border-top-left-radius: 6px; border-top-right-radius: 6px; border-bottom: 1px solid #D8B4FE; }
+            QLabel { background-color: #F3E8FF; color: #9333EA; font-weight: bold; font-size: 18px; border-top-left-radius: 7px; border-top-right-radius: 7px; border-bottom: 1px solid #D8B4FE; }
+        """
+        ORANGE_DATE_STYLE = """
+            QLabel { background-color: #FFEDD5; color: #EA580C; font-weight: bold; font-size: 18px; border-top-left-radius: 7px; border-top-right-radius: 7px; border-bottom: 1px solid #FDBA74; }
         """
 
         for day, widgets in self.day_cards.items():
@@ -277,24 +284,41 @@ class AttendanceHistoryDialog(QFrame):
         selected_year = int(self.year_combo.currentText())
         monthly_visits = 0
         
-        day_data = {day: {'time': None, 'time_color': None, 'is_consulting': False, 'status_html': None} for day in range(1, 32)}
+        day_data = {day: {'time': None, 'time_color': None, 'is_consulting': False, 'is_last_day': False, 'status_html': None} for day in range(1, 32)}
         
-        # Consulting 
+        # 1. Consulting Logic
         if hasattr(self, 'created_at') and self.created_at:
-            fees = int(self.consultancy_fees) if self.consultancy_fees else 0
-            if fees > 0:
-                if isinstance(self.created_at, str):
-                    try:
-                        reg_date = datetime.strptime(self.created_at[:10], "%Y-%m-%d")
-                    except ValueError:
-                        reg_date = None
-                else:
-                    reg_date = self.created_at
-                
-                if reg_date and reg_date.month == selected_month and reg_date.year == selected_year:
-                    day_data[reg_date.day]['is_consulting'] = True
+            # Consultancy should only be shown if there is a valid paid consultancy fee
+            fees_value = str(self.consultancy_fees).strip().lower()
+            if fees_value not in ("", "0", "free"):
+                try:
+                    fees = float(fees_value)
+                except (ValueError, TypeError):
+                    fees = 0
+                if fees > 0:
+                    if isinstance(self.created_at, str):
+                        try:
+                            reg_date = datetime.strptime(self.created_at[:10], "%Y-%m-%d")
+                        except ValueError:
+                            reg_date = None
+                    else:
+                        reg_date = self.created_at
 
-        # Attendance 
+                    if reg_date and reg_date.month == selected_month and reg_date.year == selected_year:
+                        day_data[reg_date.day]["is_consulting"] = True
+            # if fees > 0:
+            #     if isinstance(self.created_at, str):
+            #         try:
+            #             reg_date = datetime.strptime(self.created_at[:10], "%Y-%m-%d")
+            #         except ValueError:
+            #             reg_date = None
+            #     else:
+            #         reg_date = self.created_at
+                
+            #     if reg_date and reg_date.month == selected_month and reg_date.year == selected_year:
+            #         day_data[reg_date.day]['is_consulting'] = True
+
+        # 2. Attendance Logic
         if hasattr(self, 'full_history'):
             for record in self.full_history:
                 raw_date = str(record.get("attendance_date", ""))
@@ -321,20 +345,38 @@ class AttendanceHistoryDialog(QFrame):
                             used_days = int(record.get("used_days", 0) or 0)
                             paid_days = int(record.get("paid_days", 0) or 0)
                             
-                            if used_days <= paid_days:
-                                status_html = "<span style='background-color: #DCFCE7; color: #16A34A; padding: 3px 8px; border-radius: 4px; font-size: 12px;'>Paid</span>"
-                                time_color = "#16A34A" 
-                            else:
-                                status_html = "<span style='background-color: #FEE2E2; color: #DC2626; padding: 3px 8px; border-radius: 4px; font-size: 12px;'>Due</span>"
-                                time_color = "#DC2626"
-                            
+                            time_color = "#64748B"  # Default slate color (or whatever standard color you prefer)
+                            status_html = None
+                            payment_html = None
+                            if used_days > 0:
+                                if used_days == paid_days:
+                                    status_html = "<span style='background-color: #FFEDD5; color: #EA580C; padding: 3px 8px; border-radius: 4px; font-size: 12px;'>Last Day</span>"
+                                    time_color = "#EA580C"
+                                    day_data[day]['is_last_day'] = True  
+                                
+                                elif (paid_days - used_days) == 1:
+                                    status_html = "<span style='background-color: #FEF08A; color: #854D0E; padding: 3px 8px; border-radius: 4px; font-size: 12px;'>1 Day Left</span>"
+                                    time_color = "#CA8A04" 
+                                
+                                if used_days < paid_days:
+                                    payment_html = "<span style='background-color: #DCFCE7; color: #16A34A; padding: 3px 8px; border-radius: 4px; font-size: 12px;'>Paid</span>"
+                                    time_color = "#16A34A" 
+                                    day_data[day]['payment_html'] = payment_html
+                                
+                                else:
+                                    payment_html = "<span style='background-color: #FEE2E2; color: #DC2626; padding: 3px 8px; border-radius: 4px; font-size: 12px;'>Due</span>"
+                                    time_color = "#DC2626"
+                                    day_data[day]['payment_html'] = payment_html
+                            # Now these will never throw an UnboundLocalError
                             day_data[day]['time'] = display_time
                             day_data[day]['time_color'] = time_color
                             day_data[day]['status_html'] = status_html
-                            monthly_visits += 1 
+                            
+                            monthly_visits += 1
                     except ValueError:
                         pass
         
+        # 3. UI Update Logic
         for day, widgets in self.day_cards.items():
             data = day_data[day]
             elements = []
@@ -342,14 +384,18 @@ class AttendanceHistoryDialog(QFrame):
             if data['is_consulting']:
                 widgets['card'].setStyleSheet(PURPLE_CARD_STYLE)
                 widgets['date_lbl'].setStyleSheet(PURPLE_DATE_STYLE)
-
-            if data['is_consulting']:
                 elements.append("<span style='color: #9333EA; font-size: 13px; font-weight: bold;'>Consulting</span>")
+                
+            elif data['is_last_day']:
+                widgets['card'].setStyleSheet(ORANGE_CARD_STYLE)
+                widgets['date_lbl'].setStyleSheet(ORANGE_DATE_STYLE)
                 
             if data['time']:
                 elements.append(f"<span style='color: {data['time_color']}; font-size: 14px; font-weight: bold;'>{data['time']}</span>")
             
-            
+            if data.get('payment_html'):
+                elements.append(data['payment_html'])
+
             if data['status_html']:
                 elements.append(data['status_html'])
             
