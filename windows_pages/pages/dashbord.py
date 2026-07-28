@@ -724,15 +724,19 @@ class DashboardPage(QWidget):
                 except ValueError:
                     logger.error("Invalid check_in_time format: %s", check_in_time, exc_info=True)
                     pass
-
+            patient_name = record.get("patient_name", "--")
+            used_days = int(record.get("used_days", 0) or 0)
+            display_name = f"{patient_name} ( {used_days} )"
+            
             items = [
                 QTableWidgetItem(""), 
-                QTableWidgetItem(record.get("patient_name", "--")),
+                QTableWidgetItem(display_name),
                 QTableWidgetItem(record.get("gender", "--")),
                 QTableWidgetItem(str(record.get("age", "--"))),
                 QTableWidgetItem(problem),
                 QTableWidgetItem(check_in_time),
             ]
+
             
             for col_index, item in enumerate(items):
                 if col_index in (1, 4):      
