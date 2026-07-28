@@ -50,7 +50,7 @@ class OrganizationRepository:
     def update_admin_password(self, organization_id, new_hashed_password):
         logger.info("Updating admin password for organization_id: %s", organization_id)
         try:
-            current_time = datetime.now().isoformat()
+            current_time = datetime.now()
             result = self.organizations.update_one(
                 {"_id": ObjectId(organization_id)},
                 {"$set": {
