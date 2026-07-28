@@ -15,8 +15,31 @@ from PyQt6.QtCore import QUrl
 import hashlib
 import sys
 import logging
+from utils.attendance_history_dialog import AttendanceHistoryDialog
+from database.patient_repository import PatientRepository
+from bson import ObjectId
 
 logger = logging.getLogger(__name__)
+
+# Add HoverLabel for clickable patient name
+class HoverLabel(QLabel):
+    clicked = pyqtSignal(str, str, object, int)
+   
+    def __init__(self, text, patient_id, created_at, fees, default_color="#334155"):
+        super().__init__(text)
+        self.patient_id = patient_id
+        self.patient_name = text
+        self.created_at = created_at
+        self.fees = fees
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setStyleSheet(f"""
+            QLabel {{ color: {default_color}; background: transparent; font-size: 14px; }}
+            QLabel:hover {{ color: #5C62D6; text-decoration: underline; }}
+        """)
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.clicked.emit(self.patient_id, self.patient_name, self.created_at, self.fees)
 
 class ActionPopup(QWidget):
     def __init__(self, parent_widget, current_state):
@@ -159,6 +182,9 @@ class DashboardPage(QWidget):
         self.current_logs = []
         self.active_action_widget = None
         self.setup_ui()
+        self.patient_repository = PatientRepository()
+        self.history_dialog = AttendanceHistoryDialog(self)
+        self.active_dialog = None
         self.db = db
         self.attendance_worker = AttendanceWorker()
         self.attendance_worker.scanner_connected.connect(self.on_scanner_connected)
@@ -730,7 +756,7 @@ class DashboardPage(QWidget):
             
             items = [
                 QTableWidgetItem(""), 
-                QTableWidgetItem(display_name),
+                QTableWidgetItem(""), # Empty string for cell widget
                 QTableWidgetItem(record.get("gender", "--")),
                 QTableWidgetItem(str(record.get("age", "--"))),
                 QTableWidgetItem(problem),
@@ -762,6 +788,31 @@ class DashboardPage(QWidget):
                     item.setForeground(QColor("#334155")) # Default Text
 
                 target_table.setItem(row_idx, col_index, item)
+            
+            # HoverLabel for patient name
+            patient_id = str(record.get("patient_id", record.get("_id", "")))
+            created_at = record.get("created_at")
+            fees = record.get("consultancy_fees", 0)
+
+            # Determine text color for the link based on row status
+            if is_payment_due:
+                text_color = "#DC2626"
+            elif last_day:
+                text_color = "#997400"
+            elif is_completed:
+                text_color = "#94A3B8"
+            else:
+                text_color = "#334155"
+
+            name_label = HoverLabel(display_name, patient_id, created_at, fees, default_color=text_color)
+            name_label.clicked.connect(self.show_patient_history)
+            
+            name_container = QWidget()
+            name_container.setStyleSheet("QWidget { background-color: transparent; border: none; }")
+            name_layout = QHBoxLayout(name_container)
+            name_layout.setContentsMargins(10, 0, 0, 0)
+            name_layout.addWidget(name_label, alignment=Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+            target_table.setCellWidget(row_idx, 1, name_container)
             
             queue_no = record.get('queue_no', row_idx + 1)
             badge = QLabel(str(queue_no))
@@ -1041,7 +1092,32 @@ class DashboardPage(QWidget):
         self.load_today_logs()
 
 
-    
+    def close_active_dialog(self):
+        # Close any currently active dialog
+        if self.active_dialog and self.active_dialog.isVisible():
+            self.active_dialog.hide()
+        self.active_dialog = None
+
+    def show_patient_history(self, patient_id, patient_name, created_at, consultancy_fees):
+        logger.info("Dashboard showing patient history for %s", patient_name)
+        self.close_active_dialog()
+        
+        # Fetch fresh patient data
+        fresh_patient = self.patient_repository.patients.find_one({"_id": ObjectId(patient_id)})
+        if not fresh_patient:
+            return
+            
+        # Fetch full attendance history
+        history = self.attendance_worker.attendance_repository.get_patient_attendance_history(
+            Session.organization_id, patient_id
+        )
+        
+        c_at = fresh_patient.get("created_at")
+        fees = fresh_patient.get("consultancy_fees", 0)
+
+        # Show in history dialog modal
+        self.history_dialog.show_dialog(patient_name, history, c_at, fees)
+        self.active_dialog = self.history_dialog
 
     def show_role_popup(self, event):
         logger.info("Showing role popup from DashboardPage")
