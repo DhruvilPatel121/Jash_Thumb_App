@@ -17,6 +17,7 @@ import sys
 import logging
 from utils.attendance_history_dialog import AttendanceHistoryDialog
 from database.patient_repository import PatientRepository
+from utils.update_patient_dialog import UpdatePatientDialog
 from bson import ObjectId
 
 logger = logging.getLogger(__name__)
@@ -184,6 +185,8 @@ class DashboardPage(QWidget):
         self.setup_ui()
         self.patient_repository = PatientRepository()
         self.history_dialog = AttendanceHistoryDialog(self)
+        self.update_dialog = UpdatePatientDialog(self)
+        self.update_dialog.patient_updated.connect(self.load_today_logs)
         self.active_dialog = None
         self.db = db
         self.attendance_worker = AttendanceWorker()
@@ -779,7 +782,7 @@ class DashboardPage(QWidget):
                     item.setForeground(QColor("#DC2626")) # Dark Red Text
                 elif last_day:
                     item.setBackground(QColor("#FFF3CD")) # Light Yellow Background
-                    item.setForeground(QColor("#997400")) # Dark Yellow/Brown Text
+                    item.setForeground(QColor("#CA8A04")) # Perfect Yellow Text
                 elif is_completed:
                     item.setBackground(row_bg_color)
                     item.setForeground(QColor("#94A3B8")) # Gray Text
@@ -798,7 +801,7 @@ class DashboardPage(QWidget):
             if is_payment_due:
                 text_color = "#DC2626"
             elif last_day:
-                text_color = "#997400"
+                text_color = "#CA8A04"
             elif is_completed:
                 text_color = "#94A3B8"
             else:
@@ -896,42 +899,44 @@ class DashboardPage(QWidget):
             consult_widget.setEnabled(allow_edit)
             med_widget.setEnabled(allow_edit)
 
+            update_btn = QPushButton("✏️")
             delete_btn = QPushButton("🗑️")
+            update_btn.setFixedSize(35, 35)
             delete_btn.setFixedSize(35, 35)
             
-            if (allow_edit or self.selected_date != today) and not is_completed:
+            # Update Button is always active
+            update_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            update_btn.setStyleSheet("""
+            QPushButton{ background-color: #DBEAFE; border: none; border-radius: 8px; font-size: 16px; padding: 0px; }
+            QPushButton:hover{ background-color: #BFDBFE; }
+            QPushButton:pressed{ border: 1px solid #3B82F6; }
+            """)
+            update_btn.clicked.connect(lambda _, p_id=patient_id: self.open_update_dialog(p_id))
+
+            # Delete Button is disabled if patient has completed E and P
+            if not is_completed:
                 delete_btn.setCursor(Qt.CursorShape.PointingHandCursor)
                 delete_btn.setStyleSheet("""
-                QPushButton{
-                    background-color: #FEE2E2;
-                    border: none;
-                    border-radius: 8px;
-                    font-size: 16px;
-                    padding: 0px; 
-                }
+                QPushButton{ background-color: #FEE2E2; border: none; border-radius: 8px; font-size: 16px; padding: 0px; }
                 QPushButton:hover{ background-color: #FECACA; }
                 QPushButton:pressed{ border: 1px solid #EF4444; }
                 """)
                 delete_btn.clicked.connect(lambda _, r=record: self.delete_attendance_dialog.show_dialog(r))
             else:
                 delete_btn.setCursor(Qt.CursorShape.ForbiddenCursor)
-                delete_btn.setStyleSheet("""
-                QPushButton{
-                    background-color: #F1F5F9;
-                    border: none;
-                    border-radius: 8px;
-                    font-size: 16px;
-                    color: #94A3B8;
-                }
-                """)
+                disabled_style = """
+                QPushButton{ background-color: #F1F5F9; border: none; border-radius: 8px; font-size: 16px; color: #94A3B8; }
+                """
+                delete_btn.setStyleSheet(disabled_style)
                 delete_btn.setEnabled(False)
 
-            # Center the button in the cell
+            # Center the buttons in the cell
             btn_container = QWidget()
             btn_container.setStyleSheet("QWidget{background: transparent;}")
             btn_layout = QHBoxLayout(btn_container)
             btn_layout.setContentsMargins(0, 0, 0, 0)
             btn_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            btn_layout.addWidget(update_btn)
             btn_layout.addWidget(delete_btn)
             
             # Add to the 9th column (index 8)
@@ -1128,6 +1133,14 @@ class DashboardPage(QWidget):
         else:
             self.admin_popup_menu = open_admin_menu_popup(self, self.user_label, self.role_changed.emit)
 
+    def open_update_dialog(self, patient_id):
+        logger.info("Opening patient update dialog from dashboard")
+        self.close_active_dialog()
+        patient = self.patient_repository.patients.find_one({"_id": ObjectId(patient_id)})
+        if patient:
+            self.update_dialog.show_form(patient)
+            self.active_dialog = self.update_dialog
+
     def close_all_popups(self):
         logger.info("Closing all active popups in DashboardPage")
         if self.calendar_popup.isVisible():
@@ -1138,7 +1151,12 @@ class DashboardPage(QWidget):
             popup = getattr(self.active_action_widget, "popup", None)
             if popup and popup.isVisible():
                 popup.close()
+        if hasattr(self, 'history_dialog') and self.history_dialog.isVisible():
+            self.history_dialog.hide()
+        if hasattr(self, 'update_dialog') and self.update_dialog.isVisible():
+            self.update_dialog.hide()
         self.active_action_widget = None
+        self.active_dialog = None
 
     def on_role_switched(self, role):
         logger.info("Role switched to %s", role)
