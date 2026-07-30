@@ -109,6 +109,14 @@ class PatientRepository:
             logger.error(f"Patient fetch from database Error: {error}", exc_info=True)
             return []
 
+    def get_patient_by_id(self, patient_id):
+        logger.info("Fetching patient by id: %s", patient_id)
+        try:
+            return self.patients.find_one({"_id": ObjectId(patient_id)})
+        except Exception as error:
+            logger.error(f"Error fetching patient by id: {error}", exc_info=True)
+            return None
+
     def count_patients(self, organization_id):
         logger.info("Counting patients for organization_id=%s", organization_id)
         try:
@@ -191,3 +199,40 @@ class PatientRepository:
         except Exception as error:
             logger.error(f"Delete Patient Error: {error}", exc_info=True)
             return False
+
+    def get_monthly_consultancy_patients(self, organization_id, month, year):
+        logger.info("Getting monthly consultancy patients for org=%s, month=%s, year=%s", organization_id, month, year)
+        try:
+            if isinstance(month, str) and not month.isdigit():
+                month_names = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+                month = month_names.index(month) + 1
+            else:
+                month = int(month)
+                
+            year = int(year)
+            
+            start_date = datetime(year, month, 1)
+            if month == 12:
+                end_date = datetime(year + 1, 1, 1)
+            else:
+                end_date = datetime(year, month + 1, 1)
+
+            pipeline = [
+                {
+                    "$match": {
+                        "organization_id": organization_id,
+                        "created_at": {"$gte": start_date, "$lt": end_date},
+                        "consultancy_fees": {"$gt": 0}
+                    }
+                },
+                {
+                    "$sort": {"created_at": 1}
+                }
+            ]
+
+            records = list(self.patients.aggregate(pipeline))
+            return records
+
+        except Exception as error:
+            logger.error("Error in get_monthly_consultancy_patients", exc_info=True)
+            return []
