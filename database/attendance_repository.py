@@ -354,3 +354,136 @@ class AttendanceRepository:
             },
             update_query
         )
+
+    def get_monthly_payment_status(self, organization_id, month, year):
+        logger.info("Getting monthly payment status for org=%s, month=%s, year=%s", organization_id, month, year)
+        
+        try:
+            if isinstance(month, str) and not month.isdigit():
+                month_names = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+                month = month_names.index(month) + 1
+            else:
+                month = int(month)
+                
+            year = int(year)
+            
+            start_date = datetime(year, month, 1)
+            if month == 12:
+                end_date = datetime(year + 1, 1, 1)
+            else:
+                end_date = datetime(year, month + 1, 1)
+
+            pipeline = [
+                {
+                    "$match": {
+                        "organization_id": organization_id,
+                        "created_at": {"$gte": start_date, "$lt": end_date}
+                    }
+                },
+                {
+                    "$sort": {"created_at": 1}
+                },
+                {
+                    "$group": {
+                        "_id": "$patient_id",
+                        "latest_record": {"$last": "$$ROOT"}
+                    }
+                },
+                {
+                    "$replaceRoot": {"newRoot": "$latest_record"}
+                },
+                {
+                    "$sort": {"created_at": 1}
+                }
+            ]
+
+            records = list(self.attendance.aggregate(pipeline))
+            
+            paid_list = []
+            due_list = []
+            last_day_list = []
+            
+            today_str = datetime.now().strftime("%Y-%m-%d")
+            
+            for record in records:
+                # Need to safely parse to int in case they are strings in DB
+                try:
+                    paid_days = int(record.get("paid_days", 0) or 0)
+                except ValueError:
+                    paid_days = 0
+                try:
+                    used_days = int(record.get("used_days", 0) or 0)
+                except ValueError:
+                    used_days = 0
+                
+                # Skip consultancy-only patients (paid_days=0 and used_days=0)
+                if paid_days == 0 and used_days == 0:
+                    continue
+                
+                if used_days < paid_days:
+                    paid_list.append(record)
+                elif used_days == paid_days:
+                    paid_list.append(record)
+                    if record.get("attendance_date") == today_str:
+                        last_day_list.append(record)
+                else:
+                    due_list.append(record)
+                    
+            return paid_list, last_day_list, due_list
+
+        except Exception as error:
+            logger.error("Error in get_monthly_payment_status", exc_info=True)
+            return [], [], []
+
+    def get_monthly_attendance_counts(self, organization_id, month, year):
+        """
+        Count attendance records for the selected month:
+        - treatment_visits: records where used_days > 0 (actual treatment days used)
+        - paid_visits:      records where paid_days > 0 (visits by patients who have paid)
+        Consultancy-only visits (used_days == 0) are excluded from both counts.
+        """
+        logger.info("Getting monthly attendance counts for org=%s, month=%s, year=%s", organization_id, month, year)
+        try:
+            if isinstance(month, str) and not month.isdigit():
+                month_names = ["January", "February", "March", "April", "May", "June",
+                               "July", "August", "September", "October", "November", "December"]
+                month = month_names.index(month) + 1
+            else:
+                month = int(month)
+            year = int(year)
+
+            start_date = datetime(year, month, 1)
+            end_date = datetime(year + 1, 1, 1) if month == 12 else datetime(year, month + 1, 1)
+
+            pipeline = [
+                {
+                    "$match": {
+                        "organization_id": organization_id,
+                        "created_at": {"$gte": start_date, "$lt": end_date}
+                    }
+                },
+                {
+                    "$group": {
+                        "_id": None,
+                        "treatment_visits": {
+                            "$sum": {
+                                "$cond": [{"$gt": ["$used_days", 0]}, 1, 0]
+                            }
+                        },
+                        "paid_visits": {
+                            "$sum": {
+                                "$cond": [{"$gt": ["$paid_days", 0]}, 1, 0]
+                            }
+                        }
+                    }
+                }
+            ]
+
+            result = list(self.attendance.aggregate(pipeline))
+            if result:
+                return result[0].get("treatment_visits", 0), result[0].get("paid_visits", 0)
+            return 0, 0
+
+        except Exception as error:
+            logger.error("Error in get_monthly_attendance_counts", exc_info=True)
+            return 0, 0
