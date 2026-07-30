@@ -7,6 +7,7 @@ from sync.sync_worker import SyncWorker
 from windows_pages.pages.dashbord import DashboardPage
 from windows_pages.pages.registration_window import RegistrationPage
 from windows_pages.pages.patient_window import PatientPage
+from windows_pages.pages.payment_report_window import PaymentReportPage
 from utils.license_manager import LicenseManager
 from utils.session import Session
 
@@ -57,11 +58,13 @@ class AppCorePage(QWidget):
         self.dashboard_page = DashboardPage(self.db)
         self.registration_page = RegistrationPage(self.db)
         self.patient_page = PatientPage(self.db)
-        logger.debug("Dashboard, Registration, and Patient pages instantiated")
+        self.report_page = PaymentReportPage(self.db)
+        logger.debug("Dashboard, Registration, Patient, and Report pages instantiated")
 
         self.content_stack.addWidget(self.dashboard_page)      # Index 0
         self.content_stack.addWidget(self.registration_page)   # Index 1
         self.content_stack.addWidget(self.patient_page)        # Index 2
+        self.content_stack.addWidget(self.report_page)         # Index 3
         logger.debug("Pages added to content stack")
 
         self.sidebar = Sidebar(self)
@@ -101,11 +104,13 @@ class AppCorePage(QWidget):
         self.sidebar.dashboard_clicked.connect(self.go_to_dashboard)
         self.sidebar.registration_clicked.connect(self.go_to_registration)
         self.sidebar.patient_clicked.connect(self.go_to_patients)
+        self.sidebar.report_clicked.connect(self.go_to_report)
         logger.debug("Sidebar navigation signals connected")
         
         self.dashboard_page.role_changed.connect(self.update_role_access)
         self.registration_page.role_changed.connect(self.update_role_access)
         self.patient_page.role_changed.connect(self.update_role_access)
+        self.report_page.role_changed.connect(self.update_role_access)
         logger.debug("Role change signals connected for pages")
         
         self.sidebar.set_active_page("dashboard")
@@ -122,14 +127,18 @@ class AppCorePage(QWidget):
         self.dashboard_page.user_label.setText(f"👤 {role}")
         self.registration_page.user_label.setText(f"👤 {role}")
         self.patient_page.user_label.setText(f"👤 {role}")
+        self.report_page.user_label.setText(f"👤 {role}")
 
         self.dashboard_page.current_role = role
         self.registration_page.current_role = role
         self.patient_page.current_role = role
+        self.report_page.current_role = role
 
         if role == "Staff":
             if hasattr(self.sidebar, "patient_btn"):
                 self.sidebar.patient_btn.hide()
+            if hasattr(self.sidebar, "report_btn"):
+                self.sidebar.report_btn.hide()
             
             self.dashboard_page.search_input.hide()
             self.dashboard_page.filter_date_btn.hide()
@@ -138,11 +147,13 @@ class AppCorePage(QWidget):
             self.dashboard_page.cardio_table.setColumnHidden(0, True)
             logger.debug("Staff role restrictions applied")
 
-            if self.content_stack.currentIndex() == 2:
+            if self.content_stack.currentIndex() in [2, 3]:
                 self.go_to_dashboard()
         else:
             if hasattr(self.sidebar, "patient_btn"):
                 self.sidebar.patient_btn.show()
+            if hasattr(self.sidebar, "report_btn"):
+                self.sidebar.report_btn.show()
             self.registration_page.save_btn.setEnabled(True)
             
             self.dashboard_page.search_input.show()
@@ -289,6 +300,18 @@ class AppCorePage(QWidget):
         self.patient_page.load_patients()
         self.patient_page.load_patient_counts()
         logger.debug("Patient page activated and data loads triggered")
+
+    def go_to_report(self):
+        logger.info("Navigating to payment report page")
+        if self.sidebar_open:
+            self.toggle_sidebar()
+        self.close_all_page_popups()
+        self.stop_active_scanners()
+        self.clear_search_bars()
+        self.content_stack.setCurrentIndex(3)
+        self.sidebar.set_active_page("report")
+        self.report_page.load_report_data()
+        logger.debug("Payment report page activated")
 
     def refresh_on_login(self):
         logger.info("Refreshing AppCorePage on login")
