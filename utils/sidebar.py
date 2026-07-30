@@ -12,6 +12,7 @@ class Sidebar(QFrame):
     dashboard_clicked = pyqtSignal()
     registration_clicked = pyqtSignal()
     patient_clicked = pyqtSignal()
+    report_clicked = pyqtSignal()
     
     state_changed = pyqtSignal(bool) 
 
@@ -54,6 +55,10 @@ class Sidebar(QFrame):
         self.patient_btn.setIcon(QIcon(resource_path("assets/list.png")))
         self.patient_btn.setIconSize(QSize(24, 24))
 
+        self.report_btn = QPushButton("Reports")
+        self.report_btn.setIcon(QIcon(resource_path("assets/file.png")))
+        self.report_btn.setIconSize(QSize(24, 24))
+
         self.normal_style = """
             QPushButton {
                 background-color: transparent;
@@ -87,18 +92,20 @@ class Sidebar(QFrame):
             }
         """
 
-        for btn in [self.dashboard_btn, self.registration_btn, self.patient_btn]:
+        for btn in [self.dashboard_btn, self.registration_btn, self.patient_btn, self.report_btn]:
             btn.setStyleSheet(self.normal_style)
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
 
         layout.addWidget(self.dashboard_btn)
         layout.addWidget(self.registration_btn)
         layout.addWidget(self.patient_btn)
+        layout.addWidget(self.report_btn)
         layout.addStretch()
 
         self.dashboard_btn.clicked.connect(lambda: self.menu_clicked("dashboard"))
         self.registration_btn.clicked.connect(lambda: self.menu_clicked("registration"))
         self.patient_btn.clicked.connect(lambda: self.menu_clicked("patient"))
+        self.report_btn.clicked.connect(lambda: self.menu_clicked("report"))
 
         self.setGeometry(-240, 0, 240, 1000) 
 
@@ -114,6 +121,8 @@ class Sidebar(QFrame):
             self.registration_clicked.emit()
         elif page == "patient":
             self.patient_clicked.emit()
+        elif page == "report":
+            self.report_clicked.emit()
 
     def toggle_sidebar(self):
         logger.info("Toggling sidebar state from is_open=%s", self.is_open)
@@ -146,6 +155,7 @@ class Sidebar(QFrame):
         self.dashboard_btn.setStyleSheet(self.normal_style)
         self.registration_btn.setStyleSheet(self.normal_style)
         self.patient_btn.setStyleSheet(self.normal_style)
+        self.report_btn.setStyleSheet(self.normal_style)
 
         if page_name == "dashboard":
             self.dashboard_btn.setStyleSheet(self.active_style)
@@ -153,3 +163,5 @@ class Sidebar(QFrame):
             self.patient_btn.setStyleSheet(self.active_style)
         elif page_name == "registration":
             self.registration_btn.setStyleSheet(self.active_style)
+        elif page_name == "report":
+            self.report_btn.setStyleSheet(self.active_style)
