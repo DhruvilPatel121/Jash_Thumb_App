@@ -392,12 +392,12 @@ class PaymentReportPage(QWidget):
         self.report_table.setColumnWidth(2, 70)   # Age
         self.report_table.setColumnWidth(3, 120)  # Mobile
         self.report_table.setColumnWidth(4, 120)  # Department
-        self.report_table.setColumnWidth(5, 120)  # Problem
         self.report_table.setColumnWidth(6, 100)  # Paid Days
         self.report_table.setColumnWidth(7, 100)  # Used Days
-        self.report_table.setColumnWidth(8, 150)  # Last Visit Date
-        
+        self.report_table.setColumnWidth(8, 120)  # Monthly Visits
+        self.report_table.setColumnWidth(9, 150)  # Last Visit Date
         header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch) # Name stretches
+        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Stretch) # Problem stretches
         
         # Footer
         self.footer_layout = QHBoxLayout()
@@ -502,13 +502,12 @@ class PaymentReportPage(QWidget):
         # Monthly counts from all attendance records (not from the grouped latest-per-patient list)
         treatment_visits, paid_visits = self.attendance_repository.get_monthly_attendance_counts(org_id, month, year)
         self.total_paid_days_lbl.setText(f"Paid Visits: {paid_visits}")
-        self.total_used_days_lbl.setText(f"Treatment Days: {treatment_visits}")
+        self.total_used_days_lbl.setText(f"Total Treatment Days: {treatment_visits}")
         
         self.populate_table()
 
     def populate_table(self):
         self.report_table.setRowCount(0)
-        
         active_list = []
         active_color = "#334155" # Default text color
         active_bg_color = "#F1F5F9"
