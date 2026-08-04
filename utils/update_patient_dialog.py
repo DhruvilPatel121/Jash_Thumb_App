@@ -45,7 +45,7 @@ class UpdatePatientDialog(QFrame):
         logger.info("Setting up UI for UpdatePatientDialog")
         self.setObjectName("updateCard")
         self.hide()
-        self.setFixedSize(600, 600)
+        self.setFixedSize(600, 680)
         check_icon = resource_path("assets/check.png").replace("\\", "/")
         self.setStyleSheet(f"""
         QFrame#updateCard {{
@@ -211,6 +211,7 @@ class UpdatePatientDialog(QFrame):
         self.department_layout.addStretch()
 
         self.problem_input = QLineEdit()
+        self.extra_note_input = QLineEdit()
 
         form_layout.addRow("Name", self.name_input)
         form_layout.addRow("Mobile", self.mobile_input)
@@ -227,6 +228,7 @@ class UpdatePatientDialog(QFrame):
         form_layout.addRow("Gender", self.gender_layout)
         form_layout.addRow("Department", self.department_layout)
         form_layout.addRow("Problem", self.problem_input)
+        form_layout.addRow("Extra Note", self.extra_note_input)
 
         self.capture_btn = QPushButton("Capture")
         self.capture_btn.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -278,6 +280,7 @@ class UpdatePatientDialog(QFrame):
         self.female_radio.installEventFilter(self)
         self.dep1_radio.installEventFilter(self)
         self.dep2_radio.installEventFilter(self)
+        self.problem_input.installEventFilter(self)
 
     def eventFilter(self, obj, event):
         if event.type() == QEvent.Type.KeyPress:
@@ -309,6 +312,9 @@ class UpdatePatientDialog(QFrame):
                 elif obj == self.dep2_radio:
                     self.problem_input.setFocus()
                     return True
+                elif obj == self.problem_input:
+                    self.extra_note_input.setFocus()
+                    return True
 
         return super().eventFilter(obj, event)
 
@@ -323,6 +329,7 @@ class UpdatePatientDialog(QFrame):
         self.payment_input.setText(str(patient.get("payment_per_day", "")))
         self.add_paid_days_input.setText(str(patient.get("paid_days", 0)))
         self.problem_input.setText(patient.get("problem", ""))
+        self.extra_note_input.setText(patient.get("extra_note", ""))
         self.treatment_checkbox.setChecked(patient.get("treatment_start_from_today", False))
         treatment_start_today = patient.get("treatment_start_from_today", False)
         if isinstance(treatment_start_today, str):
@@ -363,6 +370,7 @@ class UpdatePatientDialog(QFrame):
         age = self.age_input.text().strip()
         gender = "Male" if self.male_radio.isChecked() else "Female"
         problem = self.problem_input.text().strip()
+        extra_note = self.extra_note_input.text().strip()
         consultancy_fees = int(self.consultancy_input.text().strip() or 0)
         payment_per_day = self.payment_input.text().strip() or ""
         add_paid_days = int(self.add_paid_days_input.text().strip() or 0)
@@ -405,6 +413,7 @@ class UpdatePatientDialog(QFrame):
                 problem,
                 self.template_bytes,
                 treatment_start_today,
+                extra_note
             )
 
             if success:
