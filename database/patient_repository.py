@@ -29,7 +29,8 @@ class PatientRepository:
         payment_per_day,
         paid_days,
         # only_consulting,
-        fingerprint_template
+        fingerprint_template,
+        extra_note=""
     ):
         logger.info("Creating patient record")
         logger.debug(
@@ -61,6 +62,7 @@ class PatientRepository:
                 # "only_consulting": only_consulting,
                 "treatment_start_from_today": False,
                 "fingerprint_template": fingerprint_template,
+                "extra_note": extra_note,
                 "created_at": datetime.now()
             }
             return self.executor.execute("INSERT", "patients", patient)
@@ -139,7 +141,8 @@ class PatientRepository:
         add_paid_days,
         problem,
         fingerprint_template=None,
-        treatment_start_from_today=False
+        treatment_start_from_today=False,
+        extra_note=None
     ):
         logger.info("Updating patient record %s", patient_id)
         logger.debug(
@@ -166,6 +169,9 @@ class PatientRepository:
             }
             if fingerprint_template is not None:
                 update_data["fingerprint_template"] = fingerprint_template
+            
+            if extra_note is not None:
+                update_data["extra_note"] = extra_note
 
             return self.executor.execute(
                 "UPDATE", "patients",
