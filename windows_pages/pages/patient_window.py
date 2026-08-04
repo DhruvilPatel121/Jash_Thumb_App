@@ -1,6 +1,6 @@
-from PyQt6.QtWidgets import (QWidget,QHBoxLayout,QVBoxLayout,QPushButton,QSizePolicy,QFrame,QLabel,QTableWidget,QTableWidgetItem,QHeaderView,QAbstractItemView,QLineEdit,QDialog, QCalendarWidget)
+from PyQt6.QtWidgets import (QWidget,QHBoxLayout,QVBoxLayout,QPushButton,QSizePolicy,QFrame,QLabel,QTableWidget,QTableWidgetItem,QHeaderView,QAbstractItemView,QLineEdit,QDialog, QCalendarWidget, QGraphicsDropShadowEffect)
 from PyQt6.QtCore import Qt, QTimer, QDateTime, QDate, pyqtSignal
-from PyQt6.QtGui import QFont
+from PyQt6.QtGui import QFont, QColor
 from utils.update_patient_dialog import UpdatePatientDialog
 from utils.delete_patient_dialog import DeletePatientDialog
 from database.patient_repository import PatientRepository
@@ -15,16 +15,66 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+class CustomHoverPopup(QWidget):
+    def __init__(self, text, parent=None):
+        super().__init__(parent)
+        self.setWindowFlags(Qt.WindowType.ToolTip | Qt.WindowType.FramelessWindowHint)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(5, 5, 5, 5)
+        
+        frame = QFrame()
+        frame.setStyleSheet("""
+            QFrame {
+                background-color: #FFFFFF;
+                border: 1px solid #E2E8F0;
+                border-radius: 12px;
+            }
+            QLabel {
+                color: #334155;
+                background: transparent;
+                border: none;
+            }
+        """)
+        
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(20)
+        shadow.setXOffset(0)
+        shadow.setYOffset(8)
+        shadow.setColor(QColor(0, 0, 0, 25))
+        frame.setGraphicsEffect(shadow)
+        
+        frame_layout = QVBoxLayout(frame)
+        frame_layout.setContentsMargins(15, 12, 15, 15)
+        frame_layout.setSpacing(6)
+        
+        title_label = QLabel("Extra Note")
+        title_label.setStyleSheet("color: #64748B; font-weight: bold; font-size: 13px; padding: 0px;")
+        
+        text_label = QLabel(text)
+        text_label.setWordWrap(True)
+        text_label.setMaximumWidth(350)
+        text_label.setStyleSheet("color: #1E293B; font-size: 14px; padding: 0px;")
+        
+        frame_layout.addWidget(title_label)
+        frame_layout.addWidget(text_label)
+        
+        layout.addWidget(frame)
+        self.adjustSize()
+
+
 class HoverLabel(QLabel):
     clicked = pyqtSignal(str, str, object, int)
    
-    def __init__(self, text, patient_id, created_at, fees):
+    def __init__(self, text, patient_id, created_at, fees, extra_note=""):
         super().__init__(text)
         logger.info("Initializing HoverLabel for patient %s", text)
         self.patient_id = patient_id
         self.patient_name = text
         self.created_at = created_at
         self.fees = fees
+        self.extra_note = extra_note
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setStyleSheet("""
             QLabel {
@@ -41,6 +91,20 @@ class HoverLabel(QLabel):
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
             self.clicked.emit(self.patient_id, self.patient_name, self.created_at, self.fees)
+            
+    def enterEvent(self, event):
+        if self.extra_note:
+            if not hasattr(self, 'popup'):
+                self.popup = CustomHoverPopup(self.extra_note)
+            pos = event.globalPosition().toPoint()
+            self.popup.move(pos.x() + 15, pos.y() + 15)
+            self.popup.show()
+        super().enterEvent(event)
+        
+    def leaveEvent(self, event):
+        if hasattr(self, 'popup'):
+            self.popup.hide()
+        super().leaveEvent(event)
 
 class PatientPage(QWidget):
 
@@ -532,7 +596,8 @@ class PatientPage(QWidget):
             patient_id = str(patient["_id"])
             created_at = patient.get("created_at")
             consultancy_fees = patient.get("consultancy_fees") or ""
-            name_label = HoverLabel(patient_name, patient_id, created_at, consultancy_fees)
+            extra_note = patient.get("extra_note") or ""
+            name_label = HoverLabel(patient_name, patient_id, created_at, consultancy_fees, extra_note)
             name_label.clicked.connect(self.show_patient_history)
 
             name_container = QWidget()
@@ -551,22 +616,10 @@ class PatientPage(QWidget):
             set_item(3, patient.get("age", ""))
             set_item(4, patient.get("gender", ""))
             set_item(5, patient.get("department", "--"))
-            set_item(6, patient.get("problem", ""))
-
-            def set_item(col, text):
-                item = QTableWidgetItem(str(text))
-
-                if col in (1, 6):   # Name, Problem
-                    item.setTextAlignment(
-                        Qt.AlignmentFlag.AlignLeft |
-                        Qt.AlignmentFlag.AlignVCenter
-                    )
-                else:
-                    item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-
-                self.patient_table.setItem(row, col, item)
             
-            problem = patient.get("problem", "")
+            problem = patient.get("problem") or ""
+            extra_note = patient.get("extra_note") or ""
+            
             if len(problem) > 150:
                 self.patient_table.setRowHeight(row, 120)
             elif len(problem) > 100:
@@ -575,7 +628,36 @@ class PatientPage(QWidget):
                 self.patient_table.setRowHeight(row, 85)
             else:
                 self.patient_table.setRowHeight(row, 70)
-            set_item(6,problem)
+                
+            problem_container = QWidget()
+            problem_container.setStyleSheet("background-color: transparent; border: none;")
+            problem_layout = QVBoxLayout(problem_container)
+            problem_layout.setContentsMargins(10, 0, 0, 0)
+            
+            class CustomProblemLabel(QLabel):
+                def __init__(self, text, note):
+                    super().__init__(text)
+                    self.note = note
+                def enterEvent(self, event):
+                    if self.note:
+                        if not hasattr(self, 'popup'):
+                            self.popup = CustomHoverPopup(self.note)
+                        pos = event.globalPosition().toPoint()
+                        self.popup.move(pos.x() + 15, pos.y() + 15)
+                        self.popup.show()
+                    super().enterEvent(event)
+                def leaveEvent(self, event):
+                    if hasattr(self, 'popup'):
+                        self.popup.hide()
+                    super().leaveEvent(event)
+
+            problem_label = CustomProblemLabel(problem, extra_note)
+            problem_label.setWordWrap(True)
+            problem_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+            problem_label.setStyleSheet("color: #334155; font-size: 16px; background-color: transparent;")
+                
+            problem_layout.addWidget(problem_label)
+            self.patient_table.setCellWidget(row, 6, problem_container)
             
             raw_date = str(patient.get("created_at", ""))
             formatted_date = ""
