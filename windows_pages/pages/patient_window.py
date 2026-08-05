@@ -16,7 +16,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 class CustomHoverPopup(QWidget):
-    def __init__(self, text, parent=None):
+    def __init__(self, text, parent=None, title="Extra Note"):
         super().__init__(parent)
         self.setWindowFlags(Qt.WindowType.ToolTip | Qt.WindowType.FramelessWindowHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
@@ -49,7 +49,7 @@ class CustomHoverPopup(QWidget):
         frame_layout.setContentsMargins(15, 12, 15, 15)
         frame_layout.setSpacing(6)
         
-        title_label = QLabel("Extra Note")
+        title_label = QLabel(title)
         title_label.setStyleSheet("color: #64748B; font-weight: bold; font-size: 13px; padding: 0px;")
         
         text_label = QLabel(text)
@@ -91,20 +91,6 @@ class HoverLabel(QLabel):
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
             self.clicked.emit(self.patient_id, self.patient_name, self.created_at, self.fees)
-            
-    def enterEvent(self, event):
-        if self.extra_note:
-            if not hasattr(self, 'popup'):
-                self.popup = CustomHoverPopup(self.extra_note)
-            pos = event.globalPosition().toPoint()
-            self.popup.move(pos.x() + 15, pos.y() + 15)
-            self.popup.show()
-        super().enterEvent(event)
-        
-    def leaveEvent(self, event):
-        if hasattr(self, 'popup'):
-            self.popup.hide()
-        super().leaveEvent(event)
 
 class PatientPage(QWidget):
 
