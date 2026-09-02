@@ -386,11 +386,20 @@ class AttendanceRepository:
                 {
                     "$group": {
                         "_id": "$patient_id",
-                        "latest_record": {"$last": "$$ROOT"}
+                        "latest_record": {"$last": "$$ROOT"},
+                        "monthly_visits": {
+                            "$sum": {
+                                "$cond": [{"$gt": ["$used_days", 0]}, 1, 0]
+                            }
+                        }
                     }
                 },
                 {
-                    "$replaceRoot": {"newRoot": "$latest_record"}
+                    "$replaceRoot": {
+                        "newRoot": {
+                            "$mergeObjects": ["$latest_record", {"monthly_visits": "$monthly_visits"}]
+                        }
+                    }
                 },
                 {
                     "$sort": {"created_at": 1}
