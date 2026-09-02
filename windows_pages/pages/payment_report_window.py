@@ -334,10 +334,10 @@ class PaymentReportPage(QWidget):
         # Report Table
         self.report_table = QTableWidget()
         self.report_table.setWordWrap(True)
-        self.report_table.setColumnCount(9)
+        self.report_table.setColumnCount(10)
         self.report_table.setHorizontalHeaderLabels([
             "Number", "Name", "Age", "Mobile", "Department", 
-            "Problem", "Paid Days", "Used Days", "Last Visit Date"
+            "Problem", "Total Paid", "Total Used", "Monthly Visits", "Last Visit Date"
         ])
 
         self.report_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
@@ -603,16 +603,20 @@ class PaymentReportPage(QWidget):
             self.report_table.setItem(row, 5, create_item(record.get("problem", "")))
             
             if self.active_status_filter == "Consultancy":
-                # Paid Days, Used Days, Last Visit Date
+                # Total Paid, Total Used, Monthly Visits, Last Visit Date
                 self.report_table.setItem(row, 6, create_item("--"))
                 self.report_table.setItem(row, 7, create_item("--"))
                 self.report_table.setItem(row, 8, create_item("--"))
+                self.report_table.setItem(row, 9, create_item("--"))
             else:
-                # Paid Days
+                # Total Paid
                 self.report_table.setItem(row, 6, create_item(record.get("paid_days", 0)))
                 
-                # Used Days
+                # Total Used (lifetime)
                 self.report_table.setItem(row, 7, create_item(record.get("used_days", 0)))
+                
+                # Monthly Visits (from new pipeline field)
+                self.report_table.setItem(row, 8, create_item(record.get("monthly_visits", 0)))
                 
                 # Last Visit Date (attendance_date)
                 raw_date = str(record.get("attendance_date", ""))
@@ -623,7 +627,7 @@ class PaymentReportPage(QWidget):
                         formatted_date = qdate.toString("dd-MM-yyyy")
                     else:
                         formatted_date = raw_date
-                self.report_table.setItem(row, 8, create_item(formatted_date))
+                self.report_table.setItem(row, 9, create_item(formatted_date))
         
     def open_history(self, patient_id, patient_name, created_at, fees):
         logger.info("Opening history for patient %s", patient_name)
